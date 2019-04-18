@@ -3,26 +3,31 @@
  * class is meant to be used in a tree structure. 
  * 
  * *Note: the DNA sequence is internally converted to binary to help save space.
- * @author geoffreymeier
- *
  */
 public class TreeObject {
 	
 	private long binSequence;	//The binary sequence
 	private int frequency;		//The frequency of the Object
+	private int k;				//The length of the sequence
 	
 	/**
 	 * Create a new TreeObject containing a given DNA sequence. Frequency is set
 	 * to one at initialization.
 	 * @param sequence The DNA sequence.
+	 * @param k The length of the sequence; this should be equal to the length 
+	 * of String sequence parameter. Range: [1,31]
 	 */
-	public TreeObject(String sequence) {
+	public TreeObject(String sequence, int k) {
 		//change to lower case
 		sequence = sequence.toLowerCase();
 		
-		//throw exception if sequence is incorrectly formatted
+		//check for illegal arguments and throw exceptions if necessary.
 		if (!(sequence.contains("a") || sequence.contains("t") || sequence.contains("c") || sequence.contains("g"))) 
 			throw new IllegalArgumentException("The sequence can only contain A, T, C, or G");
+		if (k<1 || k>31)
+			throw new IllegalArgumentException("Parameter 'k' is out of bounds [1,31].");
+		if (sequence.length()!=k)
+			throw new IllegalArgumentException("The length of the sequence should be equal to k");
 		
 		//change sequence to string of bits
 		sequence.replace("a", "00");
@@ -33,8 +38,9 @@ public class TreeObject {
 		//parse the sequence into an integer
 		binSequence = Long.parseLong(sequence, 2);	
 		
-		//set frequency to 1
+		//set k and frequency
 		frequency = 1;
+		this.k = k;
 	}
 	
 	/**
@@ -44,11 +50,20 @@ public class TreeObject {
 	 * T = 11,
 	 * C = 01,
 	 * G = 10.
+	 * 
+	 * *Note: If the number of bits in binSequence exceed 2*k, then any
+	 * extra bits will be truncated.
 	 * @param binSequence The DNA sequence in binary format.
+	 * @param k The length of the sequence. This should be equal to the 
+	 * number of digits in binSequence parameter divided by 2. Range: [1,31]
 	 */
-	public TreeObject(long binSequence) {
-		this.binSequence = binSequence;	
+	public TreeObject(long binSequence, int k) {		
+		if (k<1 || k>31)
+			throw new IllegalArgumentException("Parameter 'k' is out of bounds [1,31].");
+		
+		this.binSequence = binSequence & (~(~0<<(2*k))); //force size of k on binSequence
 		frequency = 1;
+		this.k = k;
 	}
 	
 	/**
@@ -66,19 +81,19 @@ public class TreeObject {
 		String binSequence = Long.toBinaryString(this.binSequence);	//get the binary sequence
 		
 		//convert binary sequence to String of A, T, C, and G
-		for (int i=0; i<binSequence.length()-1; i+=2) {
-			switch (binSequence.substring(i, i+2)) {
+		for (int i=2*k; i>=2; i-=2) {
+			switch (binSequence.substring(i-2, i)) {
 			case "00":
-				sequence += "A";
+				sequence = "A"+sequence;
 				break;
 			case "11":
-				sequence += "T";
+				sequence = "T"+sequence;
 				break;
 			case "01":
-				sequence += "C";
+				sequence = "C"+sequence;
 				break;
 			case "10":
-				sequence += "G";
+				sequence = "G"+sequence;
 			}
 		}
 		

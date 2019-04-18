@@ -9,6 +9,7 @@ public class TreeObject {
 	private long binSequence;	//The binary sequence
 	private int frequency;		//The frequency of the Object
 	private int k;				//The length of the sequence
+	private final String VALID_CHARS = "atcg";	//valid characters in a DNA sequence
 	
 	/**
 	 * Create a new TreeObject containing a given DNA sequence. Frequency is set
@@ -22,12 +23,14 @@ public class TreeObject {
 		sequence = sequence.toLowerCase();
 		
 		//check for illegal arguments and throw exceptions if necessary.
-		if (!(sequence.contains("a") || sequence.contains("t") || sequence.contains("c") || sequence.contains("g"))) 
-			throw new IllegalArgumentException("The sequence can only contain A, T, C, or G");
 		if (k<1 || k>31)
 			throw new IllegalArgumentException("Parameter 'k' is out of bounds [1,31].");
 		if (sequence.length()!=k)
 			throw new IllegalArgumentException("The length of the sequence should be equal to k");
+		for (int i=0; i<sequence.length(); i++) {
+			if (!VALID_CHARS.contains(sequence.substring(i,i+1))) 
+				throw new IllegalArgumentException("The sequence can only contain A, T, C, or G");
+		}
 		
 		//change sequence to string of bits
 		sequence.replace("a", "00");

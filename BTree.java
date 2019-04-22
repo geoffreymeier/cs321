@@ -138,7 +138,110 @@ public class BTree {
 	 * class is an inner class of BTree per CS321 Project 4
 	 * requirements.
 	 */
-	private class BTreeNode {
-		//TODO
+		private class BTreeNode 
+	{
+		ArrayList<TreeObject> BtreeNode;
+		ArrayList<BTreeNode> children;
+		TreeObject parent;
+		boolean full, leaf;
+		int des;
+		/**
+		 * Constructor for the BTree node
+		 */
+		BTreeNode(int treeHeight, TreeObject p)
+		{
+			parent = p;
+			BtreeNode = new ArrayList<TreeObject>();
+			children = new ArrayList<BTreeNode>();
+			leaf = true;
+			full = false;
+		}
+		/**
+		 * Adds a TreeObject to the node
+		 */
+		public void addTreeObject(TreeObject t)
+		{
+			if(isLeaf()) 
+			{
+				for (int i=0; i<BtreeObject.size();i++)
+				{
+				
+				}
+			}
+			BtreeNode.add(t);
+		}
+		/**
+		 * Removes specified TreeObject within the BTree node.
+		 * 
+		 * @return the removed TreeObject
+		 */
+		public TreeObject removeTreeObeject(TreeObject t)
+		{
+			//Change this to specify index?
+			BtreeNode.remove(t);
+			return null;
+		}
+		/**
+		 * 
+		 * @return specified TreeObject within this BTree node
+		 */
+		public TreeObject getTreeObject(int index)
+		{
+			return BtreeNode.get(0);
+		}
+		/**
+		 * 
+		 * @return pointer to the parent of this BTree node
+		 */
+		public long getParentPointer()
+		{
+			//disk read - get offset from disk and return offset value
+			TreeObject pointerObj = parent;
+			//fix this
+			long offset = pointerObj.hashCode();
+			return offset;
+		}
+		/**
+		 * 
+		 * @return pointer to one of the children of this BTree node
+		 */
+		public long getChildPointer(int k)
+		{
+			//disk read - get offset from disk and return offset value
+			BTreeNode pointerObj = children.get(k);
+			//fix this
+			long offset = pointerObj.hashCode();
+			return offset;
+		}
+		public void addChildPointer(BTreeNode t) 
+		{
+			children.add(t);
+		}
+		/**
+		 * Method that determines whether or not a BTree node is full. This method should ALWAYS
+		 * be called before attempting to add a TreeObject to a node.
+		 * @return whether or not the BTreeNode is full
+		 */
+		public boolean isFull()
+		{
+				full=true;
+			return full;
+		}
+		public void setLeaf(boolean l) 
+		{
+			leaf = l;
+		}
+		public boolean getLeaf()
+		{
+			
+		}
+		/**
+		 * 
+		 * @return true if BTree node is a leaf, false otherwise
+		 */
+		public boolean isLeaf()
+		{
+			return false;
+		}
 	}
 }

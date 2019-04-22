@@ -45,14 +45,16 @@ public class GeneBankCreateBTree {
 			
 			//initialize scanner and BTree
 			Scanner scan = new Scanner(filename);
+			scan.useDelimiter("//s*ORIGIN//s|//s*////s");	//use delimiters ORIGIN and //
 			BTree btree = new BTree(degree,length);
 			
-			
-			while (scan.hasNextLine()) {
-				//search file for lines of interest
-				if (scan.nextLine().trim().equals("ORIGIN")) {
-					
+			while (scan.hasNext()) {
+				String data = scan.next();
+				data = data.replaceAll("[^atcgn]", "");	//process data (only keep a, t, c, g, and n)
+				for (int i = 0; i <= data.length(); i++) {
+					//TODO
 				}
+				
 			}
 			
 			

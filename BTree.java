@@ -138,19 +138,18 @@ public class BTree {
 	 * class is an inner class of BTree per CS321 Project 4
 	 * requirements.
 	 */
-		private class BTreeNode 
+	private class BTreeNode 
 	{
 		ArrayList<TreeObject> BtreeNode;
 		ArrayList<BTreeNode> children;
-		TreeObject parent;
+		BTreeNode parent;
 		boolean full, leaf;
-		int des;
+		int max;
 		/**
 		 * Constructor for the BTree node
 		 */
-		BTreeNode(int treeHeight, TreeObject p)
+		BTreeNode(int treeHeight)
 		{
-			parent = p;
 			BtreeNode = new ArrayList<TreeObject>();
 			children = new ArrayList<BTreeNode>();
 			leaf = true;
@@ -159,46 +158,47 @@ public class BTree {
 		/**
 		 * Adds a TreeObject to the node
 		 */
-		public void addTreeObject(TreeObject t)
+		public void addTreeObject(TreeObject t, int index)
 		{
-			if(isLeaf()) 
+			if(!full) 
 			{
-				for (int i=0; i<BtreeObject.size();i++)
+				BtreeNode.add(index,t);
+				if(BtreeNode.size() == max)
 				{
-				
+					full = true;
 				}
 			}
-			BtreeNode.add(t);
 		}
 		/**
 		 * Removes specified TreeObject within the BTree node.
 		 * 
 		 * @return the removed TreeObject
 		 */
-		public TreeObject removeTreeObeject(TreeObject t)
+		public TreeObject removeTreeObject(int index)
 		{
 			//Change this to specify index?
-			BtreeNode.remove(t);
-			return null;
+			//BtreeNode.remove(t);
+			
+			return BtreeNode.remove(index);
 		}
 		/**
-		 * 
+		 * Gets a TreeObject from the current BTreeNode at the specified index.
 		 * @return specified TreeObject within this BTree node
 		 */
 		public TreeObject getTreeObject(int index)
 		{
-			return BtreeNode.get(0);
+			return BtreeNode.get(index);
 		}
 		/**
-		 * 
+		 * Gets the parent pointer to this BTreeNode.
 		 * @return pointer to the parent of this BTree node
 		 */
 		public long getParentPointer()
 		{
 			//disk read - get offset from disk and return offset value
-			TreeObject pointerObj = parent;
+			BTreeNode nodeObj = parent;
 			//fix this
-			long offset = pointerObj.hashCode();
+			long offset = nodeObj.hashCode();
 			return offset;
 		}
 		/**
@@ -209,13 +209,25 @@ public class BTree {
 		{
 			//disk read - get offset from disk and return offset value
 			BTreeNode pointerObj = children.get(k);
+			
 			//fix this
 			long offset = pointerObj.hashCode();
 			return offset;
 		}
+		public void setParentPointer(BTreeNode t) 
+		{
+			parent = t;
+		}
 		public void addChildPointer(BTreeNode t) 
 		{
 			children.add(t);
+		}
+		public long removeChildPointer(int index) 
+		{
+			//disk read - get offset from disk and return offset value
+			children.remove(index);
+			//long offset = pointerObj()
+			return 0; 
 		}
 		/**
 		 * Method that determines whether or not a BTree node is full. This method should ALWAYS
@@ -224,7 +236,6 @@ public class BTree {
 		 */
 		public boolean isFull()
 		{
-				full=true;
 			return full;
 		}
 		public void setLeaf(boolean l) 
@@ -233,7 +244,12 @@ public class BTree {
 		}
 		public boolean getLeaf()
 		{
-			
+			return false;
+		}
+		public int getNumKeys() 
+		{
+			//The size of the list of elements is equivalent to the number of keys within the node because every element only has one key.
+			return BtreeNode.size();
 		}
 		/**
 		 * 

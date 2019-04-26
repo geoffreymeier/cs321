@@ -13,7 +13,7 @@ public class GeneBankCreateBTree {
 	 */
 	public static void main(String[] args) {
 		
-		int cacheStatus,degree,length,cacheSize,debugLevel;	
+		int cacheStatus,degree,seqLength,cacheSize,debugLevel;	
 		File filename;
 		
 		//Initialize variables
@@ -27,8 +27,8 @@ public class GeneBankCreateBTree {
 				throw new IllegalArgumentException("Degree must be non-negative");
 			}
 			filename = new File(args[2]);
-			length = Integer.parseInt(args[3]);
-			if (length < 1 || length > 31) {	//verify bounds of sequence length
+			seqLength = Integer.parseInt(args[3]);
+			if (seqLength < 1 || seqLength > 31) {	//verify bounds of sequence length
 				throw new IllegalArgumentException("Sequence length must be between 1 and 31 (inclusive)");
 			}
 			cacheSize = (cacheStatus==1)?Integer.parseInt(args[4]):0;
@@ -46,20 +46,27 @@ public class GeneBankCreateBTree {
 			//initialize scanner and BTree
 			Scanner scan = new Scanner(filename);
 			scan.useDelimiter("//s*ORIGIN//s|//s*////s");	//use delimiters ORIGIN and //
-			BTree btree = new BTree(degree,length);
+			BTree btree = new BTree(degree,seqLength);
 			
+			//scan and insert patterns into BTree
 			while (scan.hasNext()) {
 				String data = scan.next();
 				data = data.replaceAll("[^atcgn]", "");	//process data (only keep a, t, c, g, and n)
-				for (int i = 0; i <= data.length(); i++) {
-					//TODO
+				for (int i = 0; i <= data.length()-seqLength; i++) {
+					btree.BTreeInsert(data.substring(i, i+seqLength));
 				}
-				
 			}
 			
+			scan.close();	//close the scanner
+			
+			//if debug is specified, make dump file
+			if (debugLevel!=0) {
+				createDumpFile(btree);
+			}
 			
 		}
 		catch (FileNotFoundException e) {
+			System.out.println("Error: Please make sure that the filename is valid.");
 			e.printStackTrace();
 		}
 		catch(IllegalArgumentException e) {
@@ -69,6 +76,16 @@ public class GeneBankCreateBTree {
 		}
 	}
 	
+	
+	/**
+	 * Helper method that will create a dump file from a B-Tree.
+	 * @param btree The B-Tree from which to create a dump file.
+	 */
+	private static void createDumpFile(BTree btree) {
+		// TODO Auto-generated method stub
+		
+	}
+
 	/**
 	 * Helper method which will print the usage statement to the
 	 * console. 

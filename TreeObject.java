@@ -116,4 +116,12 @@ public class TreeObject {
 	public int getFrequency() {
 		return frequency;
 	}
+	
+	/**
+	 * Set the frequency of the sequence. *CAUTION*: only use when retrieving node from file.
+	 * @param freq The new frequency
+	 */
+	public void setFrequency(int freq) {
+		frequency = freq;
+	}
 }

@@ -1,5 +1,6 @@
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -10,11 +11,12 @@ import java.util.ArrayList;
 public class BTree {
 
 	private int degree;					//degree of the BTree
-	private int maxKeys, minKeys;		//max/min number of keys for each node			
+	private final int maxKeys, minKeys;	//max/min number of keys for each node			
 	private int k;						//sequence length
 	private BTreeNode root; 			//root node
 	private RandomAccessFile file;		//Random Access File
 	private final int NODE_SIZE;
+	private String gbkFileName;			//the filename of the gbk file
 
 	/**
 	 * Create a new BTree of TreeObjects. 
@@ -22,9 +24,10 @@ public class BTree {
 	 * @param k The length of each binary sequence
 	 * @param gbkFile The name of the gbk file, which will be used to create the RandomAccessFile
 	 */
-	public BTree(int degree, int k, String gbkFile) {
+	public BTree(int degree, int k, String gbkFileName) {
 		this.k = k;
 		root = allocateNode();
+		this.gbkFileName = gbkFileName;
 
 		//Set degree of the tree. If user specified 0, get the optimal degree
 		if (degree > 0)
@@ -34,12 +37,11 @@ public class BTree {
 
 		maxKeys = (2*this.degree) - 1;
 		minKeys = this.degree -1;
-		
 		NODE_SIZE = 13+8*(2*degree+1)+12*(2*degree-1);
 
 		try {
-			file = new RandomAccessFile(gbkFile+"btree.data."+k+"."+"degree", "rw");
-			
+			file = new RandomAccessFile(gbkFileName+".btree.data."+k+".degree", "rw");
+
 			//write BTree metadata
 			ByteBuffer buffer = ByteBuffer.allocate(13);
 			buffer.put((byte) k);	//cast k as byte since size is limited to 31
@@ -48,7 +50,8 @@ public class BTree {
 			byte[] array = null;
 			buffer.put(array);
 			file.write(array);
-			
+			root.writeNode();	//write root to file to allocate space, even though it will be empty
+
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 			System.out.println("Error: the BTree file could not be created.");
@@ -56,6 +59,23 @@ public class BTree {
 			e.printStackTrace();
 			System.out.println("Error: could not write to BTree file.");
 		}
+	}
+
+	/**
+	 * Create a BTree object from a BTree File
+	 * @param file The RandomAccessFile which contains the BTree
+	 * @throws IOException If there is an error accessing the file
+	 */
+	public BTree(String filename) throws IOException {
+		this.file = new RandomAccessFile(filename,"rw");
+		file.seek(0);
+		k = file.readByte();
+		degree = file.readInt();
+		root = retrieveNode(file.readLong());
+
+		maxKeys = (2*this.degree) - 1;
+		minKeys = this.degree -1;
+		NODE_SIZE = 13+8*(2*degree+1)+12*(2*degree-1);
 	}
 
 	/**
@@ -76,6 +96,50 @@ public class BTree {
 			BTreeInsertNonfull(s, newObject);
 		} else {
 			BTreeInsertNonfull(r, newObject);
+		}
+	}
+
+	/**
+	 * Finalizes the BTree file. ALWAYS call this method when finished with
+	 * BTree operations.
+	 * @throws IOException If RandomAccessFile cannot be accessed.
+	 */
+	public void finalize() throws IOException {
+		//write the root to file, then close file to prevent further changes
+		root.writeNode();
+		file.close();
+	}
+
+	/**
+	 * Creates a dump file of the BTree.
+	 * @throws FileNotFoundException If there is an error creating the dump file.
+	 */
+	public void createDumpFile() throws FileNotFoundException {
+		System.setOut(new PrintStream(gbkFileName+".btree.dump."+k));
+
+	}
+
+	/**
+	 * Performs an in order traversal of the tree and prints each node. Meant to be 
+	 * used in conjunction with createDumpFile()
+	 * @param x Root of tree
+	 */
+	public void inOrderTraversal(BTreeNode x) {
+		if (x==null)
+			return;
+		try {
+			for(int i=0;i<x.getNumKeys();i++) {
+				inOrderTraversal(retrieveNode(x.getChildPointer(i)));
+				TreeObject obj = x.getTreeObject(i);
+				System.out.println(obj.getSequence()+": "+obj.getFrequency());
+
+
+			}
+
+			inOrderTraversal(retrieveNode(x.getChildPointer(x.getNumKeys())));
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.out.println("Error - traversal failed to access node.");
 		}
 	}
 
@@ -150,6 +214,7 @@ public class BTree {
 		}
 	}
 
+
 	private BTreeNode allocateNode() {
 		BTreeNode newNode;
 		try {
@@ -169,10 +234,13 @@ public class BTree {
 	 * @return
 	 */
 	private int getOptimalDegree() {
-		//TODO
-		return -1;
+		// 13+8(2t+1)+12(2t-1) = 40t+9
+		// 40t+9 <= 4096
+		// t <= (4096-9)/40
+		// t = floor((4096-9)/40)
+		return (4096-9)/40;
 	}
-	
+
 	/**
 	 * Given a pointer, return the node at that pointer
 	 * @param pointer
@@ -184,18 +252,18 @@ public class BTree {
 		file.seek(pointer);
 		byte[] array = new byte[NODE_SIZE];
 		file.read(array);
-		
+
 		ByteBuffer buffer = ByteBuffer.wrap(array);
-		
+
 		byte leaf = buffer.get();
 		int numKeys = buffer.getInt();
 		long currentPointer = buffer.getLong();
 		long parentPointer = buffer.getLong();
-		
+
 		node.setLeaf((leaf==0)?false:true);
 		node.setCurrentPointer(currentPointer);
 		node.setParentPointer(parentPointer);
-		
+
 		//add the child pointers
 		for (int i=0;i<2*degree;i++) {
 			if (i<numKeys+1)
@@ -203,7 +271,7 @@ public class BTree {
 			else 
 				buffer.getLong();	//ignore this long in the buffer
 		}
-		
+
 		//add the TreeObjects
 		for (int i=0;i<2*degree-1;i++) {
 			if (i<numKeys) {
@@ -214,14 +282,14 @@ public class BTree {
 			else {	//skip these bytes
 				buffer.getLong();
 				buffer.getInt();
-				}
+			}
 		}
-		
+
 		return node;
 	}
 
-	
-	
+
+
 	/**
 	 * BTree Node represents a single node in a BTree. This
 	 * class is an inner class of BTree per CS321 Project 4
@@ -298,33 +366,33 @@ public class BTree {
 		{
 			return children.get(k);
 		}
-		
+
 		public long getCurrentPointer() {
 			return currentNode;
 		}
-		
+
 		public void setParentPointer(BTreeNode t) 
 		{
 			parent = t.getCurrentPointer();
 		}
-		
+
 		public void setParentPointer(long t) {
 			parent = t;
 		}
-		
+
 		public void setCurrentPointer(long pointer) {
 			currentNode = pointer;
 		}
-		
+
 		public void addChildPointer(BTreeNode t) 
 		{
 			children.add(t.getCurrentPointer());
 		}
-		
+
 		public void addChildPointer(long nodePointer) {
 			children.add(nodePointer);
 		}
-		
+
 		public long removeChildPointer(int index) 
 		{
 			//disk read - get offset from disk and return offset value
@@ -332,7 +400,7 @@ public class BTree {
 			//long offset = pointerObj()
 			return 0; 
 		}
-		
+
 		/**
 		 * Method that determines whether or not a BTree node is full. This method should ALWAYS
 		 * be called before attempting to add a TreeObject to a node.
@@ -346,13 +414,13 @@ public class BTree {
 		{
 			leaf = l;
 		}
-		
+
 		public int getNumKeys() 
 		{
 			//The size of the list of elements is equivalent to the number of keys within the node because every element only has one key.
 			return BtreeNode.size();
 		}
-		
+
 		/**
 		 * 
 		 * @return true if BTree node is a leaf, false otherwise
@@ -363,7 +431,8 @@ public class BTree {
 		}
 
 		/**
-		 * Write the node to the BTree file
+		 * Write node to the BTree file. This method should ALWAYS be called after making
+		 * changes to a node
 		 */
 		public void writeNode() {
 			ByteBuffer buffer = ByteBuffer.allocate(NODE_SIZE);	//metadata + parent/child pointers + objects

@@ -92,7 +92,7 @@ public class BTree {
 			BTreeNode s = allocateNode();
 			root = s;
 			s.setLeaf(false);
-			s.addChildPointer(r);
+			s.addChild(r);
 			BTreeSplit(s, 1, r);
 			BTreeInsertNonfull(s, newObject);
 		} else {
@@ -117,7 +117,7 @@ public class BTree {
 		//if newNode is not a leaf then 
 		if(child.isLeaf() == false) {
 			for(int j = 0; j < degree; j++) {
-				newNode.addChildPointer(child.removeChildPointer(j+1));
+				newNode.addChild(child.removeChild(j+1));
 			}
 		}
 		
@@ -125,10 +125,10 @@ public class BTree {
 		//of node being moved up from child
 		//child.setNumKeys(minKeys);
 		for(int k = parent.getNumKeys(); k >= childIndex+1; k--) {
-			parent.addChildPointer(k+1, parent.getChildPointer(k));
+			parent.addChild(k+1, parent.getChild(k));
 		}
 		//insert child pointer of new node to parent node
-		parent.addChildPointer(childIndex+1, newNode);
+		parent.addChild(childIndex+1, newNode);
 		for(int m = parent.getNumKeys(); m >= childIndex; m--) {
 			parent.addTreeObject(parent.removeTreeObject(m), m+1);
 		}
@@ -162,7 +162,7 @@ public class BTree {
 			i++;
 			
 			//read node
-			BTreeNode childNode = retrieveNode(node.getChildPointer(i));
+			BTreeNode childNode = retrieveNode(node.getChild(i));
 			//if not a leaf then recursively 
 			if(childNode.getNumKeys() == maxKeys) {
 				BTreeSplit(node, i , childNode);
@@ -204,14 +204,14 @@ public class BTree {
 			return;
 		try {
 			for(int i=0;i<x.getNumKeys();i++) {
-				inOrderTraversal(retrieveNode(x.getChildPointer(i)));
+				inOrderTraversal(retrieveNode(x.getChild(i)));
 				TreeObject obj = x.getTreeObject(i);
 				System.out.println(obj.getSequence()+": "+obj.getFrequency());
 
 
 			}
 
-			inOrderTraversal(retrieveNode(x.getChildPointer(x.getNumKeys())));
+			inOrderTraversal(retrieveNode(x.getChild(x.getNumKeys())));
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.out.println("Error - traversal failed to access node.");
@@ -264,13 +264,13 @@ public class BTree {
 		long parentPointer = buffer.getLong();
 
 		node.setLeaf((leaf==0)?false:true);
-		node.setCurrentPointer(currentPointer);
-		node.setParentPointer(parentPointer);
+		node.setCurrent(currentPointer);
+		node.setParent(parentPointer);
 
 		//add the child pointers
 		for (int i=0;i<2*degree;i++) {
 			if (i<numKeys+1)
-				node.addChildPointer(buffer.getLong());
+				node.addChild(buffer.getLong());
 			else 
 				buffer.getLong();	//ignore this long in the buffer
 		}
@@ -309,10 +309,11 @@ public class BTree {
 		if(searchNode.isLeaf()) {
 			return 0;
 		} else {
-			BTreeNode newSearchNode = retrieveNode(searchNode.getChildPointer(i));
+			BTreeNode newSearchNode = retrieveNode(searchNode.getChild(i));
 			return BTreeSearch(newSearchNode, key);
 		}
 	}
+
 
 
 
@@ -379,16 +380,15 @@ public class BTree {
 		 * Gets the parent pointer to this BTreeNode.
 		 * @return pointer to the parent of this BTree node
 		 */
-		public long getParentPointer()
+		public long getParent()
 		{
-			//disk read - get offset from disk and return offset value
 			return parent;
 		}
 		/**
 		 * 
 		 * @return pointer to one of the children of this BTree node
 		 */
-		public long getChildPointer(int k)
+		public long getChild(int k)
 		{
 			return children.get(k);
 		}
@@ -397,34 +397,37 @@ public class BTree {
 			return currentNode;
 		}
 
-		public void setParentPointer(BTreeNode t) 
+		//Fix this to incorporate longs instead of BTreeNode
+		public void setParent(BTreeNode t) 
 		{
 			parent = t.getCurrentPointer();
 		}
 
-		public void setParentPointer(long t) {
+		public void setParent(long t) {
 			parent = t;
 		}
 
-		public void setCurrentPointer(long pointer) {
+		public void setCurrent(long pointer) {
 			currentNode = pointer;
 		}
 
-		public void addChildPointer(BTreeNode t) 
+		//There are two "addChild" methods here; what to do with them?
+		public void addChild(int pos, long nodePointer) 
+		{
+			children.add(pos,nodePointer);
+		}
+		/*public void addChild(BTreeNode t) 
 		{
 			children.add(t.getCurrentPointer());
-		}
+		}*/
 
-		public void addChildPointer(long nodePointer) {
+		public void addChild(long nodePointer) {
 			children.add(nodePointer);
 		}
 
-		public long removeChildPointer(int index) 
+		public long removeChild(int index) 
 		{
-			//disk read - get offset from disk and return offset value
-			children.remove(index);
-			//long offset = pointerObj()
-			return 0; 
+			return children.remove(index); 
 		}
 
 		/**

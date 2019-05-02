@@ -290,6 +290,29 @@ public class BTree {
 
 		return node;
 	}
+	
+	/**
+	 * Searches for a sequence within a BTree
+	 * and returns the frequency of the sequence
+	 * @param key
+	 * @return
+	 * @throws IOException 
+	 */
+	public int BTreeSearch(BTreeNode searchNode, long key) throws IOException {
+		int i = 0;
+		while(i < searchNode.getNumKeys() && key > searchNode.getTreeObject(i).getKey()) {
+			i++;
+		}
+		if(i < searchNode.getNumKeys() && key == searchNode.getTreeObject(i).getKey()) {
+			return searchNode.getTreeObject(i).getFrequency();
+		}
+		if(searchNode.isLeaf()) {
+			return 0;
+		} else {
+			BTreeNode newSearchNode = retrieveNode(searchNode.getChildPointer(i));
+			return BTreeSearch(newSearchNode, key);
+		}
+	}
 
 
 

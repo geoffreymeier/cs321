@@ -71,7 +71,7 @@ public class GeneBankCreateBTree {
 			e.printStackTrace();
 		}
 		catch(IllegalArgumentException e) {
-			e.getMessage();
+			e.printStackTrace();
 			printUsage();
 			System.exit(1);
 		} catch (IOException e) {

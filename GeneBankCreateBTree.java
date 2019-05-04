@@ -49,13 +49,17 @@ public class GeneBankCreateBTree {
 			scan.useDelimiter("\\s*ORIGIN\\s*|\\s*//\\s*");	//use delimiters ORIGIN and //
 			BTree btree = new BTree(degree,seqLength,args[2]);
 			
+			int index = 0;
 			//scan and insert patterns into BTree
 			while (scan.hasNext()) {
 				String data = scan.next();
-				data = data.replaceAll("[^atcgn]", "");	//process data (only keep a, t, c, g, and n)
-				for (int i = 0; i <= data.length()-seqLength; i++) {
-					btree.BTreeInsert(data.substring(i, i+seqLength));
+				if(index % 2 == 1) {
+					data = data.replaceAll("[^atcgn]", "");	//process data (only keep a, t, c, g, and n)
+					for (int i = 0; i <= data.length()-seqLength; i++) {
+						btree.BTreeInsert(data.substring(i, i+seqLength));
+					}
 				}
+				index++;
 			}
 			
 			scan.close();	//close the scanner

@@ -18,6 +18,7 @@ public class BTree {
 	private final int NODE_SIZE;
 	private String gbkFileName;			//the filename of the gbk file
 
+	
 	/**
 	 * Create a new BTree of TreeObjects. 
 	 * @param degree The degree of the tree.
@@ -297,10 +298,6 @@ public class BTree {
 				TreeObject object = new TreeObject(buffer.getLong(),k);
 				object.setFrequency(buffer.getInt());
 				node.addTreeObject(object,i);
-			}
-			else {	//skip these bytes
-				buffer.getLong();
-				buffer.getInt();
 			}
 		}
 

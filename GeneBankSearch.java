@@ -38,13 +38,7 @@ public class GeneBankSearch {
 			Scanner scan = new Scanner(query);
 			while(scan.hasNext()) {
 				String sequence = scan.next();
-				//change sequence to string of bits
-				sequence.replace("a", "00");
-				sequence.replace("t", "11");
-				sequence.replace("c", "01");
-				sequence.replace("g", "10");
-				long binSequence = Long.parseLong(sequence, 2);	
-				int freq = btree.BTreeSearch(btree.getRoot(),binSequence);
+				int freq = btree.BTreeSearch(btree.getRoot(),sequence);
 				System.out.println(sequence+": "+freq);				
 			}
 			

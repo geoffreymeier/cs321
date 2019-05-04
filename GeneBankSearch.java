@@ -4,10 +4,11 @@ import java.io.IOException;
 import java.util.Scanner;
 
 /**
- * Allows the user to search a BTree using a btree and query file. *
+ * Allows the user to search a BTree using a btree and query file.
  */
 public class GeneBankSearch {
 
+	@SuppressWarnings("unused")
 	public static void main(String[] args) {
 		int cacheStatus, cacheSize, debugLevel;
 		String btreeFileName;
@@ -41,7 +42,7 @@ public class GeneBankSearch {
 				int freq = btree.BTreeSearch(btree.getRoot(),sequence);
 				System.out.println(sequence+": "+freq);				
 			}
-			
+			scan.close();
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: Please make sure that the filename is valid.");
 			e.printStackTrace();

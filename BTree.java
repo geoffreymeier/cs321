@@ -40,7 +40,7 @@ public class BTree {
 		NODE_SIZE = 13+8*(2*this.degree+1)+12*(2*this.degree-1);
 
 		try {
-			file = new RandomAccessFile(gbkFileName+".btree.data."+k+".degree", "rw");
+			file = new RandomAccessFile(gbkFileName+".btree.data."+k+"."+this.degree, "rw");
 			root = allocateNode();
 
 			//write BTree metadata
@@ -202,7 +202,8 @@ public class BTree {
 	 */
 	public void createDumpFile() throws FileNotFoundException {
 		System.setOut(new PrintStream(gbkFileName+".btree.dump."+k));
-
+		inOrderTraversal(root);
+		System.setOut(System.out);
 	}
 
 	/**
@@ -397,14 +398,7 @@ public class BTree {
 		{
 			return BtreeNode.get(index);
 		}
-		/**
-		 * Gets the parent pointer to this BTreeNode.
-		 * @return pointer to the parent of this BTree node
-		 */
-		public long getParent()
-		{
-			return parent;
-		}
+		
 		/**
 		 * 
 		 * @return pointer to one of the children of this BTree node
@@ -416,12 +410,6 @@ public class BTree {
 
 		public long getCurrentPointer() {
 			return currentNode;
-		}
-
-		//Fix this to incorporate longs instead of BTreeNode
-		public void setParent(BTreeNode t) 
-		{
-			parent = t.getCurrentPointer();
 		}
 
 		public void setParent(long t) {
@@ -451,15 +439,6 @@ public class BTree {
 			return children.remove(index); 
 		}
 
-		/**
-		 * Method that determines whether or not a BTree node is full. This method should ALWAYS
-		 * be called before attempting to add a TreeObject to a node.
-		 * @return whether or not the BTreeNode is full
-		 */
-		public boolean isFull()
-		{
-			return full;
-		}
 		public void setLeaf(boolean l) 
 		{
 			leaf = l;

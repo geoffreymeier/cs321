@@ -38,10 +38,10 @@ public class GeneBankCreateBTree {
 			}
 			debugLevel = 0; //default
 			if (cacheStatus==1 && args.length==6) {
-				debugLevel = Integer.parseInt(args[6]);	
+				debugLevel = Integer.parseInt(args[5]);	
 			}				
 			else if (cacheStatus==0 && args.length==5) {
-				debugLevel = Integer.parseInt(args[5]);
+				debugLevel = Integer.parseInt(args[4]);
 			}
 			
 			//initialize scanner and BTree
@@ -56,7 +56,9 @@ public class GeneBankCreateBTree {
 				if(index % 2 == 1) {
 					data = data.replaceAll("[^atcgn]", "");	//process data (only keep a, t, c, g, and n)
 					for (int i = 0; i <= data.length()-seqLength; i++) {
+						System.out.println(data.substring(i, i+seqLength));
 						btree.BTreeInsert(data.substring(i, i+seqLength));
+						
 					}
 				}
 				index++;
@@ -65,9 +67,9 @@ public class GeneBankCreateBTree {
 			scan.close();	//close the scanner
 			
 			//if debug is specified, make dump file
-			if (debugLevel!=0) {
-				createDumpFile(btree);
-			}
+			if (debugLevel!=0)
+				btree.createDumpFile();
+			
 			
 		}
 		catch (FileNotFoundException e) {
@@ -84,15 +86,6 @@ public class GeneBankCreateBTree {
 		}
 	}
 	
-	
-	/**
-	 * Helper method that will create a dump file from a B-Tree.
-	 * @param btree The B-Tree from which to create a dump file.
-	 */
-	private static void createDumpFile(BTree btree) {
-		// TODO Auto-generated method stub
-		
-	}
 
 	/**
 	 * Helper method which will print the usage statement to the

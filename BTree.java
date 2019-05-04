@@ -37,7 +37,7 @@ public class BTree {
 
 		maxKeys = (2*this.degree) - 1;
 		minKeys = this.degree -1;
-		NODE_SIZE = 13+8*(2*degree+1)+12*(2*degree-1);
+		NODE_SIZE = 13+8*(2*this.degree+1)+12*(2*this.degree-1);
 
 		try {
 			file = new RandomAccessFile(gbkFileName+".btree.data."+k+".degree", "rw");
@@ -87,7 +87,8 @@ public class BTree {
 	 * @throws IOException 
 	 */
 	public void BTreeInsert(String sequence) throws IOException {
-		//TODO
+		if(sequence.contains("n"))
+			return;
 		TreeObject newObject = new TreeObject(sequence, k);
 		BTreeNode r = root;
 		if(root.getNumKeys() == maxKeys) {

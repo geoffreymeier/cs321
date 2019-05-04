@@ -215,6 +215,15 @@ public class BTree {
 	public void inOrderTraversal(BTreeNode x) {
 		if (x==null)
 			return;
+		if(x.isLeaf())
+		{
+			for(int i=0;i<x.getNumKeys();i++) 
+			{
+				TreeObject obj = x.getTreeObject(i);
+				System.out.println(obj.getSequence()+": "+obj.getFrequency());	
+			}
+			return;
+		}
 		try {
 			for(int i=0;i<x.getNumKeys();i++) {
 				inOrderTraversal(retrieveNode(x.getChild(i)));

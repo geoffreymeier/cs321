@@ -83,6 +83,11 @@ public class TreeObject {
 		String sequence = "";
 		String binSequence = Long.toBinaryString(this.binSequence);	//get the binary sequence
 		
+		while(binSequence.length()<2*k)
+		{
+			//insert 0's in front of the existing data to ensure it matches the expected length.
+			binSequence = "0" + binSequence;
+		}
 		//convert binary sequence to String of A, T, C, and G
 		for (int i=2*k; i>=2; i-=2) {
 			switch (binSequence.substring(i-2, i)) {

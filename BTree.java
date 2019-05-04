@@ -92,6 +92,7 @@ public class BTree {
 		TreeObject newObject = new TreeObject(sequence, k);
 		BTreeNode r = root;
 		if(root.getNumKeys() == maxKeys) {
+			//numNodes++;
 			BTreeNode s = allocateNode();
 			root = s;
 			s.setLeaf(false);
@@ -156,16 +157,17 @@ public class BTree {
 		//TODO
 		int i = node.getNumKeys();
 		if(node.isLeaf()) {
-			while(i >= 1 && object.getKey() < node.getTreeObject(i).getKey()) {
-				node.addTreeObject(node.getTreeObject(i), i+1);
+			//key in newObject < currentObject
+			while(i >= 1 && object.getKey() < node.getTreeObject(i-1).getKey()) {
+				node.addTreeObject(object, i);
 				i--;
 			}
-			node.addTreeObject(object, i+1);
+			node.addTreeObject(object, i);
 			
 			//disk-write(node);
 			node.writeNode();
 		} else {
-			while(i>=1 && object.getKey() < node.getTreeObject(i).getKey()) {
+			while(i>=1 && object.getKey() < node.getTreeObject(i-1).getKey()) {
 				i--;
 			}
 			i++;

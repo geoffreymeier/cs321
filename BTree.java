@@ -26,7 +26,7 @@ public class BTree {
 	 */
 	public BTree(int degree, int k, String gbkFileName) {
 		this.k = k;
-		root = allocateNode();
+		
 		this.gbkFileName = gbkFileName;
 
 		//Set degree of the tree. If user specified 0, get the optimal degree
@@ -41,15 +41,16 @@ public class BTree {
 
 		try {
 			file = new RandomAccessFile(gbkFileName+".btree.data."+k+".degree", "rw");
+			root = allocateNode();
 
 			//write BTree metadata
 			ByteBuffer buffer = ByteBuffer.allocate(13);
 			buffer.put((byte) k);	//cast k as byte since size is limited to 31
 			buffer.putInt(degree);
 			buffer.putLong(root.getCurrentPointer());
-			byte[] array = null;
-			buffer.put(array);
-			file.write(array);
+			//byte[] array = null;
+			//buffer.put(array);
+			file.write(buffer.array());
 			root.writeNode();	//write root to file to allocate space, even though it will be empty
 
 		} catch (FileNotFoundException e) {
@@ -59,6 +60,8 @@ public class BTree {
 			e.printStackTrace();
 			System.out.println("Error: could not write to BTree file.");
 		}
+		
+		
 	}
 
 	/**
@@ -85,13 +88,13 @@ public class BTree {
 	 */
 	public void BTreeInsert(String sequence) throws IOException {
 		//TODO
-		TreeObject newObject = new TreeObject(sequence, 10);
+		TreeObject newObject = new TreeObject(sequence, k);
 		BTreeNode r = root;
 		if(root.getNumKeys() == maxKeys) {
 			BTreeNode s = allocateNode();
 			root = s;
 			s.setLeaf(false);
-			s.addChild(r);
+			s.addChild(0,r.getCurrentPointer());
 			BTreeSplit(s, 1, r);
 			BTreeInsertNonfull(s, newObject);
 		} else {
@@ -127,7 +130,7 @@ public class BTree {
 			parent.addChild(k+1, parent.getChild(k));
 		}
 		//insert child pointer of new node to parent node
-		parent.addChild(childIndex+1, newNode);
+		parent.addChild(childIndex+1, newNode.getCurrentPointer());
 		for(int m = parent.getNumKeys(); m >= childIndex; m--) {
 			parent.addTreeObject(parent.removeTreeObject(m), m+1);
 		}
@@ -142,6 +145,12 @@ public class BTree {
 		 
 	}
 	
+	/**
+	 * Inserts TreeObject into a node that isn't full
+	 * @param node
+	 * @param object
+	 * @throws IOException
+	 */
 	private void BTreeInsertNonfull(BTreeNode node, TreeObject object) throws IOException {
 		//TODO
 		int i = node.getNumKeys();
@@ -217,6 +226,10 @@ public class BTree {
 		}
 	}
 
+	/**
+	 * allocate space in BTree file for a new node
+	 * @return
+	 */
 	private BTreeNode allocateNode() {
 		BTreeNode newNode;
 		try {
@@ -297,7 +310,9 @@ public class BTree {
 	 * @return
 	 * @throws IOException 
 	 */
-	public int BTreeSearch(BTreeNode searchNode, long key) throws IOException {
+	public int BTreeSearch(BTreeNode searchNode, String sequence) throws IOException {
+		TreeObject compareObject = new TreeObject(sequence, k);
+		long key = compareObject.getKey();
 		int i = 0;
 		while(i < searchNode.getNumKeys() && key > searchNode.getTreeObject(i).getKey()) {
 			i++;
@@ -309,8 +324,12 @@ public class BTree {
 			return 0;
 		} else {
 			BTreeNode newSearchNode = retrieveNode(searchNode.getChild(i));
-			return BTreeSearch(newSearchNode, key);
+			return BTreeSearch(newSearchNode, sequence);
 		}
+	}
+	
+	public BTreeNode getRoot() {
+		return root;
 	}
 
 
@@ -494,10 +513,11 @@ public class BTree {
 
 				//write buffer's contents to file		
 				file.seek(currentNode);
-				byte[] array = null;
+				//byte[] array = null;
 				buffer.flip();
-				buffer.put(array);
-				file.write(array);
+				//buffer.put(array);
+				//file.write(array);
+				file.write(buffer.array());
 			} catch (IOException e) {
 				e.printStackTrace();
 				System.out.println("Error: Failed to write node to file.");

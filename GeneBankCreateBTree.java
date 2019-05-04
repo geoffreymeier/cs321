@@ -1,5 +1,6 @@
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Scanner;
 
 /**
@@ -73,6 +74,9 @@ public class GeneBankCreateBTree {
 			e.getMessage();
 			printUsage();
 			System.exit(1);
+		} catch (IOException e) {
+			System.out.println("Error: Unable to read sequence from file.");
+			e.printStackTrace();
 		}
 	}
 	

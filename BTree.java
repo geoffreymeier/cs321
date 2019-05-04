@@ -91,7 +91,6 @@ public class BTree {
 		TreeObject newObject = new TreeObject(sequence, k);
 		BTreeNode r = root;
 		if(root.getNumKeys() == maxKeys) {
-			//numNodes++;
 			BTreeNode s = allocateNode();
 			root = s;
 			s.setLeaf(false);

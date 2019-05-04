@@ -33,10 +33,10 @@ public class TreeObject {
 		}
 		
 		//change sequence to string of bits
-		sequence.replace("a", "00");
-		sequence.replace("t", "11");
-		sequence.replace("c", "01");
-		sequence.replace("g", "10");
+		sequence = sequence.replace("a", "00");
+		sequence = sequence.replace("t", "11");
+		sequence = sequence.replace("c", "01");
+		sequence = sequence.replace("g", "10");
 		
 		//parse the sequence into an integer
 		binSequence = Long.parseLong(sequence, 2);	

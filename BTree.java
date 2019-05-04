@@ -132,12 +132,12 @@ public class BTree {
 			parent.addChild(k+1, parent.getChild(k));
 		}
 		//insert child pointer of new node to parent node
-		parent.addChild(childIndex+1, newNode.getCurrentPointer());
+		parent.addChild(childIndex, newNode.getCurrentPointer());
 		for(int m = parent.getNumKeys(); m >= childIndex; m--) {
 			parent.addTreeObject(parent.removeTreeObject(m), m+1);
 		}
 		//insert child key being moved up to parent
-		parent.addTreeObject(child.getTreeObject(degree), childIndex);
+		parent.addTreeObject(child.getTreeObject(degree-1), childIndex-1);
 		
 		/*
 		 * write changes of parent, child, and newNode  nodes to .gbk file*/
@@ -173,7 +173,7 @@ public class BTree {
 			i++;
 			
 			//read node
-			BTreeNode childNode = retrieveNode(node.getChild(i));
+			BTreeNode childNode = retrieveNode(node.getChild(i-1));
 			//if not a leaf then recursively 
 			if(childNode.getNumKeys() == maxKeys) {
 				BTreeSplit(node, i , childNode);

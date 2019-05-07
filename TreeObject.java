@@ -92,16 +92,16 @@ public class TreeObject {
 		for (int i=2*k; i>=2; i-=2) {
 			switch (binSequence.substring(i-2, i)) {
 			case "00":
-				sequence = "A"+sequence;
+				sequence = "a"+sequence;
 				break;
 			case "11":
-				sequence = "T"+sequence;
+				sequence = "t"+sequence;
 				break;
 			case "01":
-				sequence = "C"+sequence;
+				sequence = "c"+sequence;
 				break;
 			case "10":
-				sequence = "G"+sequence;
+				sequence = "g"+sequence;
 			}
 		}
 		

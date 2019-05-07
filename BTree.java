@@ -17,7 +17,6 @@ public class BTree {
 	private RandomAccessFile file;		//Random Access File
 	private final int NODE_SIZE;
 	private String gbkFileName;			//the filename of the gbk file
-
 	
 	/**
 	 * Create a new BTree of TreeObjects. 
@@ -157,18 +156,30 @@ public class BTree {
 	private void BTreeInsertNonfull(BTreeNode node, TreeObject object) throws IOException {
 		//TODO
 		int i = node.getNumKeys();
+		
+		//check for empty node (should only happen when inserting to root at beginning
+		if (i==-1) {
+			node.addTreeObject(object, 0);
+			return;
+		}
+		
 		if(node.isLeaf()) {
 			//key in newObject < currentObject
-			while(i >= 1 && object.getKey() < node.getTreeObject(i-1).getKey()) {
-				node.addTreeObject(object, i);
+			while(i > 1 && object.getKey() < node.getTreeObject(i-1).getKey()) {
 				i--;
 			}
-			node.addTreeObject(object, i);
+			//if key already exists, increment frequency. else, add object into node
+			if (i!=0 && object.getKey() == node.getTreeObject(i-1).getKey()) {
+				node.getTreeObject(i).incrementFrequency();
+			}
+			else {			
+				node.addTreeObject(object, i);
+			}
 			
 			//disk-write(node);
 			node.writeNode();
 		} else {
-			while(i>=1 && object.getKey() < node.getTreeObject(i-1).getKey()) {
+			while(i > 0 && object.getKey() < node.getTreeObject(i-1).getKey()) {
 				i--;
 			}
 			i++;
@@ -194,7 +205,6 @@ public class BTree {
 	public void finalize() throws IOException {
 		//write the root to file, then close file to prevent further changes
 		root.writeNode();
-		file.close();
 	}
 
 	/**
@@ -213,27 +223,24 @@ public class BTree {
 	 * @param x Root of tree
 	 */
 	public void inOrderTraversal(BTreeNode x) {
+		
 		if (x==null)
 			return;
-		if(x.isLeaf())
-		{
-			for(int i=0;i<x.getNumKeys();i++) 
-			{
-				TreeObject obj = x.getTreeObject(i);
-				System.out.println(obj.getSequence()+": "+obj.getFrequency());	
-			}
-			return;
-		}
+		
+		if (x.isLeaf())
+			x.isLeaf();
+		
 		try {
-			for(int i=0;i<x.getNumKeys();i++) {
-				inOrderTraversal(retrieveNode(x.getChild(i)));
-				TreeObject obj = x.getTreeObject(i);
-				System.out.println(obj.getSequence()+": "+obj.getFrequency());
+			if (!x.isLeaf()) {
+				for(int i=0;i<x.getNumChildren();i++) {
+					inOrderTraversal(retrieveNode(x.getChild(i)));
+					TreeObject obj = x.getTreeObject(i);
+					System.out.println(obj.getSequence()+": "+obj.getFrequency());
+				}
 
-
+				inOrderTraversal(retrieveNode(x.getChild(x.getNumChildren())));
 			}
-
-			inOrderTraversal(retrieveNode(x.getChild(x.getNumKeys())));
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.out.println("Error - traversal failed to access node.");
@@ -295,7 +302,7 @@ public class BTree {
 
 		//add the child pointers
 		for (int i=0;i<2*degree;i++) {
-			if (i<numKeys+1)
+			if (i<numKeys+1 && !node.isLeaf())
 				node.addChild(buffer.getLong());
 			else 
 				buffer.getLong();	//ignore this long in the buffer
@@ -342,8 +349,9 @@ public class BTree {
 		return root;
 	}
 
+	
 
-
+/* ****** B-TREE NODE ************************************************************************ */
 
 	/**
 	 * BTree Node represents a single node in a BTree. This
@@ -369,6 +377,7 @@ public class BTree {
 			leaf = true;
 			full = false;
 			currentNode = file.length();
+			this.writeNode();
 		}
 		/**
 		 * Adds a TreeObject to the node
@@ -413,6 +422,14 @@ public class BTree {
 		{
 			return children.get(k);
 		}
+		
+		/**
+		 * Return number of children
+		 * @return
+		 */
+		public int getNumChildren() {
+			return children.size();
+		}
 
 		public long getCurrentPointer() {
 			return currentNode;
@@ -426,15 +443,10 @@ public class BTree {
 			currentNode = pointer;
 		}
 
-		//There are two "addChild" methods here; what to do with them?
 		public void addChild(int pos, long nodePointer) 
 		{
 			children.add(pos,nodePointer);
 		}
-		/*public void addChild(BTreeNode t) 
-		{
-			children.add(t.getCurrentPointer());
-		}*/
 
 		public void addChild(long nodePointer) {
 			children.add(nodePointer);

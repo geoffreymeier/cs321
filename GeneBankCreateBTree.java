@@ -56,14 +56,15 @@ public class GeneBankCreateBTree {
 				if(index % 2 == 1) {
 					data = data.replaceAll("[^atcgn]", "");	//process data (only keep a, t, c, g, and n)
 					for (int i = 0; i <= data.length()-seqLength; i++) {
-						System.out.println(data.substring(i, i+seqLength));
-						btree.BTreeInsert(data.substring(i, i+seqLength));
-						
+						String sequence = data.substring(i,i+seqLength);
+						System.out.println(sequence);
+						btree.BTreeInsert(sequence);
 					}
 				}
 				index++;
 			}
 			
+			btree.finalize();			
 			scan.close();	//close the scanner
 			
 			//if debug is specified, make dump file

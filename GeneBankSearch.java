@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.Scanner;
 
 /**
- * Allows the user to search a BTree using a btree and query file.
+ * Allows the user to search a BTree using a btree and query file. *
  */
 public class GeneBankSearch {
 
@@ -13,7 +13,7 @@ public class GeneBankSearch {
 		int cacheStatus, cacheSize, debugLevel;
 		String btreeFileName;
 		File query;
-
+		
 		try {
 			//initialize variables and check for input argument errors
 			cacheStatus = Integer.parseInt(args[0]);
@@ -21,18 +21,21 @@ public class GeneBankSearch {
 				throw new IllegalArgumentException("Cache status must be 0 (without cache) or 1 (with cache)");
 			}	
 			btreeFileName = args[1];
-			BTree btree = new BTree(btreeFileName);
+			BTree btree = new BTree(btreeFileName, cacheStatus);
 			query = new File(args[2]);
 			cacheSize = (cacheStatus==1)?Integer.parseInt(args[3]):0;
-			if (cacheStatus==1 && cacheSize < 1) {	//verify cache size if using cache
-				throw new IllegalArgumentException("When using cache, a positive cache size must be specified");
-			}
-			debugLevel = 0; //default - not actually implemented for this program.
-			if (cacheStatus==1 && args.length==6) {
-				debugLevel = Integer.parseInt(args[6]);	
-			}				
+			if(cacheStatus==1) 
+			{
+				if (cacheSize < 1) {	//verify cache size if using cache
+					throw new IllegalArgumentException("When using cache, a positive cache size must be specified");
+				}
+				debugLevel = 0; //default - not actually implemented for this program.
+				if (args.length==6) {
+					debugLevel = Integer.parseInt(args[5]);	
+				}
+			}		
 			else if (cacheStatus==0 && args.length==5) {
-				debugLevel = Integer.parseInt(args[5]);
+				debugLevel = Integer.parseInt(args[4]);
 			}
 			
 			//begin scanning file
@@ -43,6 +46,7 @@ public class GeneBankSearch {
 				System.out.println(sequence+": "+freq);				
 			}
 			scan.close();
+			
 		} catch (FileNotFoundException e) {
 			System.out.println("Error: Please make sure that the filename is valid.");
 			e.printStackTrace();

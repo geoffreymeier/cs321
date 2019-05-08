@@ -18,9 +18,10 @@ public class BTree {
 	private RandomAccessFile file;		//Random Access File
 	private final int NODE_SIZE;
 	private String gbkFileName;			//the filename of the gbk file
-	
+	private boolean usingCache;				//Cache status; if its 1, we are using a cache. if 0, we are not.
+	private Cache<BTreeNode> cache;
 	/**
-	 * Create a new BTree of TreeObjects. 
+	 * Create a new BTree of TreeObjects (does not use a cache; default constructor).
 	 * @param degree The degree of the tree.
 	 * @param k The length of each binary sequence
 	 * @param gbkFile The name of the gbk file, which will be used to create the RandomAccessFile
@@ -30,6 +31,57 @@ public class BTree {
 		
 		this.gbkFileName = gbkFileName;
 
+		usingCache=false;
+		//Set degree of the tree. If user specified 0, get the optimal degree
+		if (degree > 0)
+			this.degree = degree;
+		else
+			this.degree = getOptimalDegree();
+
+		maxKeys = (2*this.degree) - 1;
+		minKeys = this.degree -1;
+		NODE_SIZE = 13+8*(2*this.degree+1)+12*(2*this.degree-1);
+
+		try {
+			File tmp = new File(gbkFileName+".btree.data."+k+"."+this.degree);
+			if (tmp.exists())
+				tmp.delete();
+			
+			file = new RandomAccessFile(gbkFileName+".btree.data."+k+"."+this.degree, "rw");
+			//write BTree metadata
+			ByteBuffer buffer = ByteBuffer.allocate(13);
+			buffer.put((byte) k);	//cast k as byte since size is limited to 31
+			buffer.putInt(degree);
+			buffer.putLong(13);	//root pointer will always be 13
+			//byte[] array = null;
+			//buffer.put(array);
+			file.write(buffer.array());
+			root = allocateNode();
+			root.writeNode();	//write root to file to allocate space, even though it will be empty
+
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			System.out.println("Error: the BTree file could not be created.");
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.out.println("Error: could not write to BTree file.");
+		}
+		
+		
+	}
+	/**
+	 * Create a new BTree of TreeObjects and uses a cache.
+	 * @param degree The degree of the tree.
+	 * @param k The length of each binary sequence
+	 * @param gbkFile The name of the gbk file, which will be used to create the RandomAccessFile
+	 * @param cacheSize The size of the cache
+	 */
+	public BTree(int degree, int k, String gbkFileName, int cacheSize) {
+		this.k = k;
+		
+		this.gbkFileName = gbkFileName;
+
+		usingCache=true;
 		//Set degree of the tree. If user specified 0, get the optimal degree
 		if (degree > 0)
 			this.degree = degree;
@@ -47,6 +99,7 @@ public class BTree {
 			
 			file = new RandomAccessFile(gbkFileName+".btree.data."+k+"."+this.degree, "rw");
 
+			cache = new Cache<BTreeNode>(cacheSize);
 			//write BTree metadata
 			ByteBuffer buffer = ByteBuffer.allocate(13);
 			buffer.put((byte) k);	//cast k as byte since size is limited to 31
@@ -80,11 +133,33 @@ public class BTree {
 		k = file.readByte();
 		degree = file.readInt();
 		root = retrieveNode(file.readLong());
-
+		
+		usingCache = false;
+		
 		maxKeys = (2*this.degree) - 1;
 		minKeys = this.degree -1;
 		NODE_SIZE = 13+8*(2*degree+1)+12*(2*degree-1);
 	}
+	/**
+	 * Create a BTree object from a BTree File
+	 * @param file The RandomAccessFile which contains the BTree
+	 * @throws IOException If there is an error accessing the file
+	 */
+	public BTree(String filename,int cacheSize) throws IOException {
+		this.file = new RandomAccessFile(filename,"rw");
+		file.seek(0);
+		k = file.readByte();
+		degree = file.readInt();
+		root = retrieveNode(file.readLong());
+		
+		usingCache = true;
+		cache = new Cache<BTreeNode>(cacheSize);
+		
+		maxKeys = (2*this.degree) - 1;
+		minKeys = this.degree -1;
+		NODE_SIZE = 13+8*(2*degree+1)+12*(2*degree-1);
+	}
+
 
 	/**
 	 * Insert a sequence into the BTree
@@ -98,12 +173,24 @@ public class BTree {
 		BTreeNode r = root;
 		if(root.getNumKeys() == maxKeys) {
 			//numNodes++;
-			BTreeNode s = allocateNode();
-			root = s;
-			s.setLeaf(false);
-			s.addChild(0,r.getCurrentPointer());
-			BTreeSplit(s, 1, r);
-			BTreeInsertNonfull(s, newObject);
+			if(usingCache)
+			{
+				if(cache.isFull())
+				{
+					
+				}	
+				//cache.add(r);
+			}
+			else 
+			{
+				BTreeNode s = allocateNode();
+				root = s;
+				s.setLeaf(false);
+				s.addChild(0,r.getCurrentPointer());
+				BTreeSplit(s, 1, r);
+				BTreeInsertNonfull(s, newObject);
+			}
+			
 		} else {
 			BTreeInsertNonfull(r, newObject);
 		}
@@ -331,9 +418,15 @@ public class BTree {
 		TreeObject compareObject = new TreeObject(sequence, k);
 		long key = compareObject.getKey();
 		int i = 0;
+		
+		if(usingCache)
+		{
+			
+		}
 		while(i < searchNode.getNumKeys() && key > searchNode.getTreeObject(i).getKey()) {
 			i++;
 		}
+		//If we found the sequence
 		if(i < searchNode.getNumKeys() && key == searchNode.getTreeObject(i).getKey()) {
 			return searchNode.getTreeObject(i).getFrequency();
 		}
@@ -358,7 +451,7 @@ public class BTree {
 	 * class is an inner class of BTree per CS321 Project 4
 	 * requirements.
 	 */
-	private class BTreeNode 
+	public class BTreeNode 
 	{
 		ArrayList<TreeObject> BtreeNode;
 		ArrayList<Long> children;
@@ -524,4 +617,166 @@ public class BTree {
 			}			
 		}
 	}
+	/**
+	 * This class allows the user to create and manage a cache.
+	 * 
+	 * @author Geoffrey Meier
+	 *
+	 */
+	public class Cache<BTreeNode> {
+		
+		private int count, size;
+		private int CAPACITY;
+		private DLLNode<BTreeNode> head, tail;
+		private BTree bTree;
+		
+		
+		/**
+		 * The constructor for a new empty Cache.
+		 * @param size The maximum size (capacity) of the Cache.
+		 */
+		public Cache(int size) {
+			count = 0;
+			CAPACITY = size;
+			this.size=0;
+			head = null;
+			tail = null;
+		}
+		
+		/**
+		 * Search the cache for the specified object.
+		 * @param object The object to search for.
+		 * @return The returned object (null if object not found).
+		 */
+		public BTreeNode get(long sequence) {
+			
+			if (count==0)
+				return null;
+			
+			//Cache is supposed to store BTreeNode objects
+			DLLNode<BTreeNode> current = head;
+			while (current != null)
+			{
+				//Need a forloop here to iterate through each key in the BTreeNode
+				//for(int i=0;i<current.getElement().;i++)
+				{
+					
+				}
+				current = current.getNext();
+			}
+			
+			return current==null ? null : current.getElement();
+		}
+		
+		/**
+		 * Search the cache for an object, then remove it from the cache.
+		 * @param object The object to remove.
+		 * @return The object removed (null if object not found).
+		 */
+		public BTreeNode remove(BTreeNode object) {
+			
+			DLLNode<BTreeNode> current = head;
+			
+			while (current != null && !current.getElement().equals(object))
+				current = current.getNext();
+				
+			// if object not found, return null
+			if(current==null)
+				return null;
+			
+			// remove object from the cache
+			if(count==1) 
+				clearCache();
+			else if(current==head) {
+				head = head.getNext();
+				head.setPrevious(null);
+			}
+			else if(current==tail) {
+				tail = tail.getPrevious();
+				tail.setNext(null);
+			}
+			else {
+				DLLNode<BTreeNode> next = current.getNext();
+				DLLNode<BTreeNode> prev = current.getPrevious();
+				
+				prev.setNext(next);
+				next.setPrevious(prev);
+			}
+			
+			count--;
+			return current.getElement();
+				
+			
+		}
+		
+		/**
+		 * Removes the last item from the cache and return it.
+		 * @return The removed object (null if the Cache was already empty).
+		 */
+		public BTreeNode removeLast() {
+			
+			if (count==0)
+				return null;
+			
+			BTreeNode tmp; // the object to be returned
+			if (count==1) {
+				tmp = head.getElement();
+				clearCache();
+			}
+			else {
+				tmp = tail.getElement();
+				tail = tail.getPrevious();
+				tail.setNext(null);
+			}
+			
+			count--;
+			return tmp;
+				
+		}
+		
+		/**
+		 * Adds the specified object to the top of the Cache, and removes any other references to it (if applicable). If
+		 * capacity is reached, the last item in the Cache is also removed.
+		 * @param object Object to be added
+		 */
+		public void add(BTreeNode object) {
+			
+			DLLNode<BTreeNode> newNode = new DLLNode<BTreeNode>(object);
+			
+			remove(object); // if the object is already in the cache, remove it
+			
+			if(count==0)
+				tail = newNode;
+			else {
+				head.setPrevious(newNode);
+				newNode.setNext(head);
+			}
+			
+			head = newNode;
+			count++;
+			
+			//if the count is greater than the capacity, remove the last item from the cache
+			if(count>CAPACITY)
+				removeLast();
+		}
+		
+		/**
+		 * 
+		 * @return true if the cache if full, false otherwise
+		 */
+		public boolean isFull()
+		{
+			return (size==CAPACITY);
+		}
+		/**
+		 * Makes the cache empty
+		 */
+		public void clearCache() {
+			head = null;
+			tail = null;
+			count = 0;
+		}
+		
+	}
+
 }

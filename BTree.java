@@ -224,23 +224,18 @@ public class BTree {
 	 */
 	public void inOrderTraversal(BTreeNode x) {
 		
-		if (x==null)
-			return;
-		
-		if (x.isLeaf())
-			x.isLeaf();
-		
 		try {
-			if (!x.isLeaf()) {
-				for(int i=0;i<x.getNumChildren();i++) {
-					inOrderTraversal(retrieveNode(x.getChild(i)));
-					TreeObject obj = x.getTreeObject(i);
-					System.out.println(obj.getSequence()+": "+obj.getFrequency());
-				}
 
-				inOrderTraversal(retrieveNode(x.getChild(x.getNumChildren())));
+			for(int i=0;i<x.getNumKeys();i++) {
+				if (!x.isLeaf())
+					inOrderTraversal(retrieveNode(x.getChild(i)));
+				TreeObject obj = x.getTreeObject(i);
+				System.out.println(obj.getSequence()+": "+obj.getFrequency());
 			}
-			
+
+			if (!x.isLeaf())
+				inOrderTraversal(retrieveNode(x.getChild(x.getNumChildren()-1)));
+
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.out.println("Error - traversal failed to access node.");

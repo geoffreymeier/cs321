@@ -1,3 +1,4 @@
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -40,17 +41,21 @@ public class BTree {
 		NODE_SIZE = 13+8*(2*this.degree+1)+12*(2*this.degree-1);
 
 		try {
+			File tmp = new File(gbkFileName+".btree.data."+k+"."+this.degree);
+			if (tmp.exists())
+				tmp.delete();
+			
 			file = new RandomAccessFile(gbkFileName+".btree.data."+k+"."+this.degree, "rw");
-			root = allocateNode();
 
 			//write BTree metadata
 			ByteBuffer buffer = ByteBuffer.allocate(13);
 			buffer.put((byte) k);	//cast k as byte since size is limited to 31
 			buffer.putInt(degree);
-			buffer.putLong(root.getCurrentPointer());
+			buffer.putLong(13);	//root pointer will always be 13
 			//byte[] array = null;
 			//buffer.put(array);
 			file.write(buffer.array());
+			root = allocateNode();
 			root.writeNode();	//write root to file to allocate space, even though it will be empty
 
 		} catch (FileNotFoundException e) {
@@ -116,12 +121,12 @@ public class BTree {
 		
 		//split half of child node to new node z
 		for(int i = 0; i < minKeys; i++) {
-			newNode.addTreeObject(child.removeTreeObject(0), i);
+			newNode.addTreeObject(child.removeTreeObject(minKeys), i);
 		}
 		//if newNode is not a leaf then 
 		if(child.isLeaf() == false) {
 			for(int j = 0; j < degree; j++) {
-				newNode.addChild(child.removeChild(j+1));
+				newNode.addChild(child.removeChild(degree));
 			}
 		}
 		
@@ -212,9 +217,9 @@ public class BTree {
 	 * @throws FileNotFoundException If there is an error creating the dump file.
 	 */
 	public void createDumpFile() throws FileNotFoundException {
-		System.setOut(new PrintStream(gbkFileName+".btree.dump."+k));
+	//	System.setOut(new PrintStream(gbkFileName+".btree.dump."+k));
 		inOrderTraversal(root);
-		System.setOut(System.out);
+	//	System.setOut(System.out);
 	}
 
 	/**

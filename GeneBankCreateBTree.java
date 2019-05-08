@@ -33,13 +33,17 @@ public class GeneBankCreateBTree {
 				throw new IllegalArgumentException("Sequence length must be between 1 and 31 (inclusive)");
 			}
 			cacheSize = (cacheStatus==1)?Integer.parseInt(args[4]):0;
-			if (cacheStatus==1 && cacheSize < 1) {	//verify cache size if using cache
-				throw new IllegalArgumentException("When using cache, a positive cache size must be specified");
-			}
+
 			debugLevel = 0; //default
-			if (cacheStatus==1 && args.length==6) {
-				debugLevel = Integer.parseInt(args[5]);	
-			}				
+			if(cacheStatus == 1) 
+			{
+				if (cacheSize < 1) {	//verify cache size if using cache
+					throw new IllegalArgumentException("When using cache, a positive cache size must be specified");
+				}
+				if (args.length==6) {
+					debugLevel = Integer.parseInt(args[5]);	
+				}
+			}			
 			else if (cacheStatus==0 && args.length==5) {
 				debugLevel = Integer.parseInt(args[4]);
 			}
@@ -47,7 +51,7 @@ public class GeneBankCreateBTree {
 			//initialize scanner and BTree
 			Scanner scan = new Scanner(filename);
 			scan.useDelimiter("\\s*ORIGIN\\s*|\\s*//\\s*");	//use delimiters ORIGIN and //
-			BTree btree = new BTree(degree,seqLength,args[2]);
+			BTree btree = new BTree(degree,seqLength,args[2],cacheStatus);
 			
 			int index = 0;
 			//scan and insert patterns into BTree

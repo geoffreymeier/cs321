@@ -220,8 +220,8 @@ public class BTree {
 		//move all parent's keys and children over one to allow for insertion
 		//of node being moved up from child
 		//child.setNumKeys(minKeys);
-		for(int k = parent.getNumKeys(); k >= childIndex+1; k--) {
-			parent.addChild(k+1, parent.getChild(k));
+		for(int j = parent.getNumKeys()+childIndex; j >= childIndex+1; j--) {
+			parent.addChild(j+1, parent.getChild(j));
 		}
 		//insert child pointer of new node to parent node
 		parent.addChild(childIndex, newNode.getCurrentPointer());

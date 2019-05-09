@@ -51,7 +51,7 @@ public class GeneBankCreateBTree {
 			//initialize scanner and BTree
 			Scanner scan = new Scanner(filename);
 			scan.useDelimiter("\\s*ORIGIN\\s*|\\s*//\\s*");	//use delimiters ORIGIN and //
-			BTree btree = new BTree(degree,seqLength,args[2],cacheStatus);
+			BTree btree = new BTree(degree,seqLength,args[2]);
 			
 			int index = 0;
 			//scan and insert patterns into BTree

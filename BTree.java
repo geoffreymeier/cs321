@@ -19,7 +19,7 @@ public class BTree {
 	private final int NODE_SIZE;
 	private String gbkFileName;			//the filename of the gbk file
 	private boolean usingCache;				//Cache status; if its 1, we are using a cache. if 0, we are not.
-	private Cache<Long> cache;
+	private Cache<BTreeNode> cache;
 	/**
 	 * Create a new BTree of TreeObjects (does not use a cache; default constructor).
 	 * @param degree The degree of the tree.
@@ -99,7 +99,7 @@ public class BTree {
 			
 			file = new RandomAccessFile(gbkFileName+".btree.data."+k+"."+this.degree, "rw");
 
-			cache = new Cache<Long>(cacheSize);
+			cache = new Cache<BTreeNode>(cacheSize);
 			//write BTree metadata
 			ByteBuffer buffer = ByteBuffer.allocate(13);
 			buffer.put((byte) k);	//cast k as byte since size is limited to 31
@@ -153,7 +153,7 @@ public class BTree {
 		root = retrieveNode(file.readLong());
 		
 		usingCache = true;
-		cache = new Cache<Long>(cacheSize);
+		cache = new Cache<BTreeNode>(cacheSize);
 		
 		maxKeys = (2*this.degree) - 1;
 		minKeys = this.degree -1;
@@ -175,46 +175,11 @@ public class BTree {
 			//numNodes++;
 			if(usingCache)
 			{
-				
-				//Two cases: one where the object exists within the cache, one where it doesn't
-				
-				//CASE 1: Exists in the cache
-				BTreeNode foundNode = cache.find(newObject.getKey());
-				if(foundNode != null)
+				if(cache.isFull())
 				{
-					//Step 1: Increment the frequency
-					for(int i=0;i<foundNode.getNumKeys();i++) 
-					{
-						//Iterate through the list of keys until we find the sequence
-						if(foundNode.getTreeObject(i).getSequence().equals(sequence))
-						{
-							foundNode.getTreeObject(i).incrementFrequency();
-							foundNode.writeNode(); //Write back to file
-							break;
-						}
-					}
 					
-					//Step 2: Remove from the cache
-					cache.remove(foundNode.getCurrentPointer());
-					
-					//Long pointerObject = new Long(foundNode.getCurrentPointer());
-					//Step 3: Add to the (top) cache
-					long currentPointer = foundNode.getCurrentPointer();
-					Long pointer = new Long(currentPointer);
-					cache.add(pointer);
-				}
-				//CASE 2: Does not exist in the cache
-				else 
-				{
-					BTreeNode s = allocateNode();
-					root = s;
-					s.setLeaf(false);
-					s.addChild(0,r.getCurrentPointer());
-					BTreeSplit(s, 1, r);
-					BTreeInsertNonfull(s, newObject);
-					
-					
-				}
+				}	
+				//cache.add(r);
 			}
 			else 
 			{
@@ -222,8 +187,9 @@ public class BTree {
 				root = s;
 				s.setLeaf(false);
 				s.addChild(0,r.getCurrentPointer());
-				BTreeSplit(s, 1, r);
+				BTreeSplit(s, 0, r);
 				BTreeInsertNonfull(s, newObject);
+				
 			}
 			
 		} else {
@@ -237,7 +203,6 @@ public class BTree {
 	 * node.
 	 */
 	private void BTreeSplit(BTreeNode parent, int childIndex, BTreeNode child) {
-		//TODO
 		BTreeNode newNode = allocateNode();
 		newNode.setLeaf(child.isLeaf());
 		
@@ -297,7 +262,7 @@ public class BTree {
 			}
 			//if key already exists, increment frequency. else, add object into node
 			if (i!=0 && object.getKey() == node.getTreeObject(i-1).getKey()) {
-				node.getTreeObject(i).incrementFrequency();
+				node.getTreeObject(i-1).incrementFrequency();
 			}
 			else {			
 				node.addTreeObject(object, i);
@@ -309,10 +274,11 @@ public class BTree {
 			while(i > 0 && object.getKey() < node.getTreeObject(i-1).getKey()) {
 				i--;
 			}
-			/*if(object.getKey() == node.getTreeObject(i).getKey()) {
-				node.getTreeObject(i).incrementFrequency();
-			}*/
-			//i++;
+			if(i!=0 && object.getKey() == node.getTreeObject(i-1).getKey()) {
+				node.getTreeObject(i-1).incrementFrequency();
+				node.writeNode();
+				return;
+			}
 			
 			//read node
 			BTreeNode childNode = retrieveNode(node.getChild(i));
@@ -321,15 +287,15 @@ public class BTree {
 				BTreeSplit(node, i, childNode);
 				if(object.getKey() > node.getTreeObject(i).getKey()) {
 					i++;
-					BTreeInsertNonfull(childNode, object);
+					childNode = retrieveNode(node.getChild(i));
+				}
+				else if (object.getKey() == node.getTreeObject(i).getKey()) {
+					node.getTreeObject(i).incrementFrequency();
+					node.writeNode();
+					return;
 				}
 			}
 			BTreeInsertNonfull(childNode, object);
-		}
-		if(usingCache)
-		{
-			Long nodePointer = new Long(node.getCurrentPointer());
-			cache.add(nodePointer);
 		}
 	}
 
@@ -348,9 +314,9 @@ public class BTree {
 	 * @throws FileNotFoundException If there is an error creating the dump file.
 	 */
 	public void createDumpFile() throws FileNotFoundException {
-	//	System.setOut(new PrintStream(gbkFileName+".btree.dump."+k));
+		System.setOut(new PrintStream(gbkFileName+".btree.dump."+k));
 		inOrderTraversal(root);
-	//	System.setOut(System.out);
+		System.setOut(System.out);
 	}
 
 	/**
@@ -463,62 +429,20 @@ public class BTree {
 		long key = compareObject.getKey();
 		int i = 0;
 		
-		//Two cases: one where the object exists within the cache and one where it does not
 		if(usingCache)
 		{
-			//CASE 1: Exists within the cache
-			BTreeNode foundNode = cache.find(compareObject.getKey());
-			if(foundNode != null)
-			{
-				//Step 1: Increment the frequency
-				for(int j=0;j<foundNode.getNumKeys();j++) 
-				{
-					//Iterate through the list of keys until we find the sequence
-					if(foundNode.getTreeObject(j).getSequence().equals(sequence))
-					{
-						foundNode.getTreeObject(j).incrementFrequency();
-						foundNode.writeNode(); //Write back to file
-						break;
-					}
-				}
-
-				
-				//Step 2: Remove from the cache
-				cache.remove(foundNode.getCurrentPointer());
-				
-				//Long pointerObject = new Long(foundNode.getCurrentPointer());
-				//Step 3: Add to the (top) cache
-				long currentPointer = foundNode.getCurrentPointer();
-				Long pointer = new Long(currentPointer);
-				cache.add(pointer);
-			}
-			//CASE 2: Does not exist within the cache
-			else 
-			{
-				
-			}
+			
 		}
-		//CASE 2: Does not exist within the cache
 		while(i < searchNode.getNumKeys() && key > searchNode.getTreeObject(i).getKey()) {
 			i++;
 		}
 		//If we found the sequence
-		if(i < searchNode.getNumKeys() && key == searchNode.getTreeObject(i).getKey()) 
-		{
-			if(usingCache)
-			{
-				Long nodePointer = new Long(searchNode.getCurrentPointer());
-				cache.add(nodePointer);
-			}
+		if(i < searchNode.getNumKeys() && key == searchNode.getTreeObject(i).getKey()) {
 			return searchNode.getTreeObject(i).getFrequency();
 		}
-		if(searchNode.isLeaf()) 
-		{
-			//Not found in file; do nothing to the cache;
+		if(searchNode.isLeaf()) {
 			return 0;
-		} 
-		else 
-		{
+		} else {
 			BTreeNode newSearchNode = retrieveNode(searchNode.getChild(i));
 			return BTreeSearch(newSearchNode, sequence);
 		}
@@ -703,20 +627,17 @@ public class BTree {
 			}			
 		}
 	}
-	
-	/* ****** CACHE ************************************************************************ */
-	
 	/**
 	 * This class allows the user to create and manage a cache.
 	 * 
 	 * @author Geoffrey Meier
 	 *
 	 */
-	public class Cache<T> {
+	public class Cache<BTreeNode> {
 		
-		private int size;
+		private int count, size;
 		private int CAPACITY;
-		private DLLNode<Long> head, tail;
+		private DLLNode<BTreeNode> head, tail;
 		private BTree bTree;
 		
 		
@@ -725,51 +646,36 @@ public class BTree {
 		 * @param size The maximum size (capacity) of the Cache.
 		 */
 		public Cache(int size) {
-			this.size = 0;
+			count = 0;
 			CAPACITY = size;
+			this.size=0;
 			head = null;
 			tail = null;
 		}
-
+		
 		/**
 		 * Search the cache for the specified object.
 		 * @param object The object to search for.
 		 * @return The returned object (null if object not found).
 		 */
-		public BTreeNode find(long sequence) {
+		public BTreeNode get(long sequence) {
 			
-			if (size==0)
+			if (count==0)
 				return null;
 			
-			BTreeNode foundNode = null;
 			//Cache is supposed to store BTreeNode objects
-			DLLNode<Long> current = head;
+			DLLNode<BTreeNode> current = head;
 			while (current != null)
 			{
-				long currentNodePointer = (long) current.getElement();
-				int numKeys;
-				try {
-					BTreeNode currentNode = retrieveNode(currentNodePointer);
-					numKeys = currentNode.getNumKeys();
-					//Need a forloop here to iterate through each key in the BTreeNode
-					for(int i=0;i<numKeys;i++)
-					{
-						if(currentNode.getTreeObject(i).getKey() == sequence)
-						{
-							//We found the sequence
-							foundNode = currentNode;
-							break; //Break here so we don't check the other keys
-						}
-					}
-					current = current.getNext();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+				//Need a forloop here to iterate through each key in the BTreeNode
+				//for(int i=0;i<current.getElement().;i++)
+				{
+					
 				}
-				
+				current = current.getNext();
 			}
 			
-			return foundNode;
+			return current==null ? null : current.getElement();
 		}
 		
 		/**
@@ -777,23 +683,19 @@ public class BTree {
 		 * @param object The object to remove.
 		 * @return The object removed (null if object not found).
 		 */
-		public long remove(long bTreeNodePointer) {
+		public BTreeNode remove(BTreeNode object) {
 			
-			DLLNode<Long> current = head;
+			DLLNode<BTreeNode> current = head;
 			
-			/* Don't need to look for the sequence in this method; If this method is called,
-			 * the bTreeNode that contains the sequence exists within the cache. This also
-			 * means that this method will never return -1;
-			 */
-			while (current != null && !current.getElement().equals(bTreeNodePointer))
+			while (current != null && !current.getElement().equals(object))
 				current = current.getNext();
 				
-			// if the pointer not found, return -1
+			// if object not found, return null
 			if(current==null)
-				return -1;
+				return null;
 			
 			// remove object from the cache
-			if(size==1) 
+			if(count==1) 
 				clearCache();
 			else if(current==head) {
 				head = head.getNext();
@@ -804,28 +706,30 @@ public class BTree {
 				tail.setNext(null);
 			}
 			else {
-				DLLNode<Long> next = current.getNext();
-				DLLNode<Long> prev = current.getPrevious();
+				DLLNode<BTreeNode> next = current.getNext();
+				DLLNode<BTreeNode> prev = current.getPrevious();
 				
 				prev.setNext(next);
 				next.setPrevious(prev);
 			}
 			
-			size--;
-			return (long) current.getElement();
+			count--;
+			return current.getElement();
+				
+			
 		}
 		
 		/**
 		 * Removes the last item from the cache and return it.
 		 * @return The removed object (null if the Cache was already empty).
 		 */
-		public Long removeLast() {
+		public BTreeNode removeLast() {
 			
-			if (size==0)
+			if (count==0)
 				return null;
 			
-			Long tmp; // the object to be returned
-			if (size==1) {
+			BTreeNode tmp; // the object to be returned
+			if (count==1) {
 				tmp = head.getElement();
 				clearCache();
 			}
@@ -835,7 +739,7 @@ public class BTree {
 				tail.setNext(null);
 			}
 			
-			size--;
+			count--;
 			return tmp;
 				
 		}
@@ -845,14 +749,13 @@ public class BTree {
 		 * capacity is reached, the last item in the Cache is also removed.
 		 * @param object Object to be added
 		 */
-		public void add(Long pointerObject) {
+		public void add(BTreeNode object) {
 			
-			DLLNode<Long> newNode = new DLLNode<Long>(pointerObject);
+			DLLNode<BTreeNode> newNode = new DLLNode<BTreeNode>(object);
 			
-			//not needed; add will only be called if the sequence is not in the cache
-			//remove(object); // if the object is already in the cache, remove it
+			remove(object); // if the object is already in the cache, remove it
 			
-			if(size==0)
+			if(count==0)
 				tail = newNode;
 			else {
 				head.setPrevious(newNode);
@@ -860,10 +763,10 @@ public class BTree {
 			}
 			
 			head = newNode;
-			size++;
+			count++;
 			
-			//if the size is greater than the capacity, remove the last item from the cache
-			if(size>CAPACITY)
+			//if the count is greater than the capacity, remove the last item from the cache
+			if(count>CAPACITY)
 				removeLast();
 		}
 		
@@ -881,7 +784,7 @@ public class BTree {
 		public void clearCache() {
 			head = null;
 			tail = null;
-			size = 0;
+			count = 0;
 		}
 		
 	}

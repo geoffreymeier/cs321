@@ -627,17 +627,19 @@ public class BTree {
 			}			
 		}
 	}
+/* ****** CACHE ************************************************************************ */
+	
 	/**
 	 * This class allows the user to create and manage a cache.
 	 * 
 	 * @author Geoffrey Meier
 	 *
 	 */
-	public class Cache<BTreeNode> {
+	public class Cache<T> {
 		
-		private int count, size;
+		private int size;
 		private int CAPACITY;
-		private DLLNode<BTreeNode> head, tail;
+		private DLLNode<Long> head, tail;
 		private BTree bTree;
 		
 		
@@ -646,36 +648,51 @@ public class BTree {
 		 * @param size The maximum size (capacity) of the Cache.
 		 */
 		public Cache(int size) {
-			count = 0;
+			this.size = 0;
 			CAPACITY = size;
-			this.size=0;
 			head = null;
 			tail = null;
 		}
-		
+
 		/**
 		 * Search the cache for the specified object.
 		 * @param object The object to search for.
 		 * @return The returned object (null if object not found).
 		 */
-		public BTreeNode get(long sequence) {
+		public BTreeNode find(long sequence) {
 			
-			if (count==0)
+			if (size==0)
 				return null;
 			
+			BTreeNode foundNode = null;
 			//Cache is supposed to store BTreeNode objects
-			DLLNode<BTreeNode> current = head;
+			DLLNode<Long> current = head;
 			while (current != null)
 			{
-				//Need a forloop here to iterate through each key in the BTreeNode
-				//for(int i=0;i<current.getElement().;i++)
-				{
-					
+				long currentNodePointer = (long) current.getElement();
+				int numKeys;
+				try {
+					BTreeNode currentNode = retrieveNode(currentNodePointer);
+					numKeys = currentNode.getNumKeys();
+					//Need a forloop here to iterate through each key in the BTreeNode
+					for(int i=0;i<numKeys;i++)
+					{
+						if(currentNode.getTreeObject(i).getKey() == sequence)
+						{
+							//We found the sequence
+							foundNode = currentNode;
+							break; //Break here so we don't check the other keys
+						}
+					}
+					current = current.getNext();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
-				current = current.getNext();
+				
 			}
 			
-			return current==null ? null : current.getElement();
+			return foundNode;
 		}
 		
 		/**
@@ -683,19 +700,23 @@ public class BTree {
 		 * @param object The object to remove.
 		 * @return The object removed (null if object not found).
 		 */
-		public BTreeNode remove(BTreeNode object) {
+		public long remove(long bTreeNodePointer) {
 			
-			DLLNode<BTreeNode> current = head;
+			DLLNode<Long> current = head;
 			
-			while (current != null && !current.getElement().equals(object))
+			/* Don't need to look for the sequence in this method; If this method is called,
+			 * the bTreeNode that contains the sequence exists within the cache. This also
+			 * means that this method will never return -1;
+			 */
+			while (current != null && !current.getElement().equals(bTreeNodePointer))
 				current = current.getNext();
 				
-			// if object not found, return null
+			// if the pointer not found, return -1
 			if(current==null)
-				return null;
+				return -1;
 			
 			// remove object from the cache
-			if(count==1) 
+			if(size==1) 
 				clearCache();
 			else if(current==head) {
 				head = head.getNext();
@@ -706,30 +727,28 @@ public class BTree {
 				tail.setNext(null);
 			}
 			else {
-				DLLNode<BTreeNode> next = current.getNext();
-				DLLNode<BTreeNode> prev = current.getPrevious();
+				DLLNode<Long> next = current.getNext();
+				DLLNode<Long> prev = current.getPrevious();
 				
 				prev.setNext(next);
 				next.setPrevious(prev);
 			}
 			
-			count--;
-			return current.getElement();
-				
-			
+			size--;
+			return (long) current.getElement();
 		}
 		
 		/**
 		 * Removes the last item from the cache and return it.
 		 * @return The removed object (null if the Cache was already empty).
 		 */
-		public BTreeNode removeLast() {
+		public Long removeLast() {
 			
-			if (count==0)
+			if (size==0)
 				return null;
 			
-			BTreeNode tmp; // the object to be returned
-			if (count==1) {
+			Long tmp; // the object to be returned
+			if (size==1) {
 				tmp = head.getElement();
 				clearCache();
 			}
@@ -739,7 +758,7 @@ public class BTree {
 				tail.setNext(null);
 			}
 			
-			count--;
+			size--;
 			return tmp;
 				
 		}
@@ -749,13 +768,14 @@ public class BTree {
 		 * capacity is reached, the last item in the Cache is also removed.
 		 * @param object Object to be added
 		 */
-		public void add(BTreeNode object) {
+		public void add(Long pointerObject) {
 			
-			DLLNode<BTreeNode> newNode = new DLLNode<BTreeNode>(object);
+			DLLNode<Long> newNode = new DLLNode<Long>(pointerObject);
 			
-			remove(object); // if the object is already in the cache, remove it
+			//not needed; add will only be called if the sequence is not in the cache
+			//remove(object); // if the object is already in the cache, remove it
 			
-			if(count==0)
+			if(size==0)
 				tail = newNode;
 			else {
 				head.setPrevious(newNode);
@@ -763,10 +783,10 @@ public class BTree {
 			}
 			
 			head = newNode;
-			count++;
+			size++;
 			
-			//if the count is greater than the capacity, remove the last item from the cache
-			if(count>CAPACITY)
+			//if the size is greater than the capacity, remove the last item from the cache
+			if(size>CAPACITY)
 				removeLast();
 		}
 		
@@ -784,9 +804,8 @@ public class BTree {
 		public void clearCache() {
 			head = null;
 			tail = null;
-			count = 0;
+			size = 0;
 		}
 		
 	}
-
 }

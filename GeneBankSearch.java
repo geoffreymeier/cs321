@@ -21,7 +21,7 @@ public class GeneBankSearch {
 				throw new IllegalArgumentException("Cache status must be 0 (without cache) or 1 (with cache)");
 			}	
 			btreeFileName = args[1];
-			BTree btree = new BTree(btreeFileName);
+			BTree btree = null;
 			query = new File(args[2]);
 			cacheSize = (cacheStatus==1)?Integer.parseInt(args[3]):0;
 			if(cacheStatus==1) 
@@ -33,9 +33,14 @@ public class GeneBankSearch {
 				if (args.length==6) {
 					debugLevel = Integer.parseInt(args[5]);	
 				}
-			}		
-			else if (cacheStatus==0 && args.length==5) {
-				debugLevel = Integer.parseInt(args[4]);
+				btree = new BTree(btreeFileName, cacheSize);
+			}
+			else if(cacheStatus==0)
+			{
+				btree = new BTree(btreeFileName);
+				if (args.length==5) {
+					debugLevel = Integer.parseInt(args[4]);
+				}
 			}
 			
 			//begin scanning file

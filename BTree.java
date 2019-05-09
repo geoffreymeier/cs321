@@ -132,13 +132,14 @@ public class BTree {
 		file.seek(0);
 		k = file.readByte();
 		degree = file.readInt();
-		root = retrieveNode(file.readLong());
-		
-		usingCache = false;
 		
 		maxKeys = (2*this.degree) - 1;
 		minKeys = this.degree -1;
 		NODE_SIZE = 13+8*(2*degree+1)+12*(2*degree-1);
+		
+		root = retrieveNode(file.readLong());
+		
+		usingCache = false;
 	}
 	/**
 	 * Create a BTree object from a BTree File
@@ -150,14 +151,15 @@ public class BTree {
 		file.seek(0);
 		k = file.readByte();
 		degree = file.readInt();
-		root = retrieveNode(file.readLong());
-		
-		usingCache = true;
-		cache = new Cache<Long>(cacheSize);
 		
 		maxKeys = (2*this.degree) - 1;
 		minKeys = this.degree -1;
 		NODE_SIZE = 13+8*(2*degree+1)+12*(2*degree-1);
+		
+		root = retrieveNode(file.readLong());
+		
+		usingCache = true;
+		cache = new Cache<Long>(cacheSize);
 	}
 
 
@@ -345,6 +347,8 @@ public class BTree {
 	public void finalize() throws IOException {
 		//write the root to file, then close file to prevent further changes
 		root.writeNode();
+		file.seek(5);
+		file.writeLong(root.getCurrentPointer());
 	}
 
 	/**
@@ -411,7 +415,6 @@ public class BTree {
 		// t = floor((4096-9)/40)
 		return (4096-9)/40;
 	}
-
 	/**
 	 * Given a pointer, return the node at that pointer
 	 * @param pointer

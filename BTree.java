@@ -19,7 +19,7 @@ public class BTree {
 	private final int NODE_SIZE;
 	private String gbkFileName;			//the filename of the gbk file
 	private boolean usingCache;				//Cache status; if its 1, we are using a cache. if 0, we are not.
-	private Cache<BTreeNode> cache;
+	private Cache<Long> cache;
 	/**
 	 * Create a new BTree of TreeObjects (does not use a cache; default constructor).
 	 * @param degree The degree of the tree.
@@ -99,7 +99,7 @@ public class BTree {
 			
 			file = new RandomAccessFile(gbkFileName+".btree.data."+k+"."+this.degree, "rw");
 
-			cache = new Cache<BTreeNode>(cacheSize);
+			cache = new Cache<Long>(cacheSize);
 			//write BTree metadata
 			ByteBuffer buffer = ByteBuffer.allocate(13);
 			buffer.put((byte) k);	//cast k as byte since size is limited to 31
@@ -153,7 +153,7 @@ public class BTree {
 		root = retrieveNode(file.readLong());
 		
 		usingCache = true;
-		cache = new Cache<BTreeNode>(cacheSize);
+		cache = new Cache<Long>(cacheSize);
 		
 		maxKeys = (2*this.degree) - 1;
 		minKeys = this.degree -1;
@@ -175,11 +175,43 @@ public class BTree {
 			//numNodes++;
 			if(usingCache)
 			{
-				if(cache.isFull())
+				//Two cases: one where the object exists within the cache, one where it doesn't
+
+				//CASE 1: Exists in the cache
+				BTreeNode foundNode = cache.find(newObject.getKey());
+				if(foundNode != null)
 				{
-					
-				}	
-				//cache.add(r);
+					//Step 1: Increment the frequency
+					for(int i=0;i<foundNode.getNumKeys();i++) 
+					{
+						//Iterate through the list of keys until we find the sequence
+						if(foundNode.getTreeObject(i).getSequence().equals(sequence))
+						{
+							foundNode.getTreeObject(i).incrementFrequency();
+							foundNode.writeNode(); //Write back to file
+							break;
+						}
+					}
+
+					//Step 2: Remove from the cache
+					cache.remove(foundNode.getCurrentPointer());
+
+					//Long pointerObject = new Long(foundNode.getCurrentPointer());
+					//Step 3: Add to the (top) cache
+					long currentPointer = foundNode.getCurrentPointer();
+					Long pointer = new Long(currentPointer);
+					cache.add(pointer);
+				}
+				//CASE 2: Does not exist in the cache
+				else 
+				{
+					BTreeNode s = allocateNode();
+					root = s;
+					s.setLeaf(false);
+					s.addChild(0,r.getCurrentPointer());
+					BTreeSplit(s, 1, r);
+					BTreeInsertNonfull(s, newObject);
+				}
 			}
 			else 
 			{
@@ -297,6 +329,12 @@ public class BTree {
 			}
 			BTreeInsertNonfull(childNode, object);
 		}
+		if(usingCache)
+		{
+			Long nodePointer = new Long(node.getCurrentPointer());
+			cache.add(nodePointer);
+		}
+
 	}
 
 	/**
@@ -429,18 +467,51 @@ public class BTree {
 		long key = compareObject.getKey();
 		int i = 0;
 		
+		//Two cases: one where the object exists within the cache and one where it does not
 		if(usingCache)
 		{
-			
+			//CASE 1: Exists within the cache
+			BTreeNode foundNode = cache.find(compareObject.getKey());
+			if(foundNode != null)
+			{
+				//Step 1: Increment the frequency
+				for(int j=0;j<foundNode.getNumKeys();j++) 
+				{
+					//Iterate through the list of keys until we find the sequence
+					if(foundNode.getTreeObject(j).getSequence().equals(sequence))
+					{
+						foundNode.getTreeObject(j).incrementFrequency();
+						foundNode.writeNode(); //Write back to file
+						break;
+					}
+				}
+
+
+				//Step 2: Remove from the cache
+				cache.remove(foundNode.getCurrentPointer());
+
+				//Long pointerObject = new Long(foundNode.getCurrentPointer());
+				//Step 3: Add to the (top) cache
+				long currentPointer = foundNode.getCurrentPointer();
+				Long pointer = new Long(currentPointer);
+				cache.add(pointer);
+			}
 		}
+		//CASE 2: Does not exist within the cache
 		while(i < searchNode.getNumKeys() && key > searchNode.getTreeObject(i).getKey()) {
 			i++;
 		}
 		//If we found the sequence
 		if(i < searchNode.getNumKeys() && key == searchNode.getTreeObject(i).getKey()) {
+			if(usingCache)
+			{
+				Long nodePointer = new Long(searchNode.getCurrentPointer());
+				cache.add(nodePointer);
+			}
 			return searchNode.getTreeObject(i).getFrequency();
 		}
 		if(searchNode.isLeaf()) {
+			//Not found in file; do nothing to the cache;
 			return 0;
 		} else {
 			BTreeNode newSearchNode = retrieveNode(searchNode.getChild(i));

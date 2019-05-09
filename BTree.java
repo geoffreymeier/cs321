@@ -187,7 +187,7 @@ public class BTree {
 				root = s;
 				s.setLeaf(false);
 				s.addChild(0,r.getCurrentPointer());
-				BTreeSplit(s, 1, r);
+				BTreeSplit(s, 0, r);
 				BTreeInsertNonfull(s, newObject);
 				
 			}
@@ -225,12 +225,12 @@ public class BTree {
 			parent.addChild(j+1, parent.getChild(j));
 		}*/
 		//insert child pointer of new node to parent node
-		parent.addChild(childIndex, newNode.getCurrentPointer());
+		parent.addChild(childIndex+1, newNode.getCurrentPointer());
 		/*for(int m = parent.getNumKeys(); m >= childIndex; m--) {
 			parent.addTreeObject(parent.removeTreeObject(m), m+1);
 		}*/
 		//insert child key being moved up to parent
-		parent.addTreeObject(child.removeTreeObject(degree-1), childIndex-1);
+		parent.addTreeObject(child.removeTreeObject(degree-1), childIndex);
 		
 		/*
 		 * write changes of parent, child, and newNode  nodes to .gbk file*/
@@ -258,7 +258,7 @@ public class BTree {
 		
 		if(node.isLeaf()) {
 			//key in newObject < currentObject
-			while(i > 1 && object.getKey() < node.getTreeObject(i-1).getKey()) {
+			while(i >= 1 && object.getKey() < node.getTreeObject(i-1).getKey()) {
 				i--;
 			}
 			//if key already exists, increment frequency. else, add object into node
@@ -278,14 +278,13 @@ public class BTree {
 			/*if(object.getKey() == node.getTreeObject(i).getKey()) {
 				node.getTreeObject(i).incrementFrequency();
 			}*/
-			i++;
 			
 			//read node
-			BTreeNode childNode = retrieveNode(node.getChild(i-1));
+			BTreeNode childNode = retrieveNode(node.getChild(i));
 			//if not a leaf then recursively 
 			if(childNode.getNumKeys() == maxKeys) {
-				BTreeSplit(node, i , childNode);
-				if(object.getKey() > node.getTreeObject(i-1).getKey()) {
+				BTreeSplit(node, i, childNode);
+				if(object.getKey() > node.getTreeObject(i).getKey()) {
 					i++;
 				}
 			}

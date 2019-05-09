@@ -175,9 +175,8 @@ public class BTree {
 			//numNodes++;
 			if(usingCache)
 			{
-				
 				//Two cases: one where the object exists within the cache, one where it doesn't
-				
+
 				//CASE 1: Exists in the cache
 				BTreeNode foundNode = cache.find(newObject.getKey());
 				if(foundNode != null)
@@ -193,10 +192,10 @@ public class BTree {
 							break;
 						}
 					}
-					
+
 					//Step 2: Remove from the cache
 					cache.remove(foundNode.getCurrentPointer());
-					
+
 					//Long pointerObject = new Long(foundNode.getCurrentPointer());
 					//Step 3: Add to the (top) cache
 					long currentPointer = foundNode.getCurrentPointer();
@@ -212,8 +211,6 @@ public class BTree {
 					s.addChild(0,r.getCurrentPointer());
 					BTreeSplit(s, 1, r);
 					BTreeInsertNonfull(s, newObject);
-					
-					
 				}
 			}
 			else 
@@ -222,8 +219,9 @@ public class BTree {
 				root = s;
 				s.setLeaf(false);
 				s.addChild(0,r.getCurrentPointer());
-				BTreeSplit(s, 1, r);
+				BTreeSplit(s, 0, r);
 				BTreeInsertNonfull(s, newObject);
+				
 			}
 			
 		} else {
@@ -237,7 +235,6 @@ public class BTree {
 	 * node.
 	 */
 	private void BTreeSplit(BTreeNode parent, int childIndex, BTreeNode child) {
-		//TODO
 		BTreeNode newNode = allocateNode();
 		newNode.setLeaf(child.isLeaf());
 		
@@ -297,7 +294,7 @@ public class BTree {
 			}
 			//if key already exists, increment frequency. else, add object into node
 			if (i!=0 && object.getKey() == node.getTreeObject(i-1).getKey()) {
-				node.getTreeObject(i).incrementFrequency();
+				node.getTreeObject(i-1).incrementFrequency();
 			}
 			else {			
 				node.addTreeObject(object, i);
@@ -309,10 +306,11 @@ public class BTree {
 			while(i > 0 && object.getKey() < node.getTreeObject(i-1).getKey()) {
 				i--;
 			}
-			/*if(object.getKey() == node.getTreeObject(i).getKey()) {
-				node.getTreeObject(i).incrementFrequency();
-			}*/
-			//i++;
+			if(i!=0 && object.getKey() == node.getTreeObject(i-1).getKey()) {
+				node.getTreeObject(i-1).incrementFrequency();
+				node.writeNode();
+				return;
+			}
 			
 			//read node
 			BTreeNode childNode = retrieveNode(node.getChild(i));
@@ -321,7 +319,12 @@ public class BTree {
 				BTreeSplit(node, i, childNode);
 				if(object.getKey() > node.getTreeObject(i).getKey()) {
 					i++;
-					BTreeInsertNonfull(childNode, object);
+					childNode = retrieveNode(node.getChild(i));
+				}
+				else if (object.getKey() == node.getTreeObject(i).getKey()) {
+					node.getTreeObject(i).incrementFrequency();
+					node.writeNode();
+					return;
 				}
 			}
 			BTreeInsertNonfull(childNode, object);
@@ -331,6 +334,7 @@ public class BTree {
 			Long nodePointer = new Long(node.getCurrentPointer());
 			cache.add(nodePointer);
 		}
+
 	}
 
 	/**
@@ -348,9 +352,9 @@ public class BTree {
 	 * @throws FileNotFoundException If there is an error creating the dump file.
 	 */
 	public void createDumpFile() throws FileNotFoundException {
-	//	System.setOut(new PrintStream(gbkFileName+".btree.dump."+k));
+		System.setOut(new PrintStream(gbkFileName+".btree.dump."+k));
 		inOrderTraversal(root);
-	//	System.setOut(System.out);
+		System.setOut(System.out);
 	}
 
 	/**
@@ -482,20 +486,15 @@ public class BTree {
 					}
 				}
 
-				
+
 				//Step 2: Remove from the cache
 				cache.remove(foundNode.getCurrentPointer());
-				
+
 				//Long pointerObject = new Long(foundNode.getCurrentPointer());
 				//Step 3: Add to the (top) cache
 				long currentPointer = foundNode.getCurrentPointer();
 				Long pointer = new Long(currentPointer);
 				cache.add(pointer);
-			}
-			//CASE 2: Does not exist within the cache
-			else 
-			{
-				
 			}
 		}
 		//CASE 2: Does not exist within the cache
@@ -503,8 +502,7 @@ public class BTree {
 			i++;
 		}
 		//If we found the sequence
-		if(i < searchNode.getNumKeys() && key == searchNode.getTreeObject(i).getKey()) 
-		{
+		if(i < searchNode.getNumKeys() && key == searchNode.getTreeObject(i).getKey()) {
 			if(usingCache)
 			{
 				Long nodePointer = new Long(searchNode.getCurrentPointer());
@@ -512,13 +510,10 @@ public class BTree {
 			}
 			return searchNode.getTreeObject(i).getFrequency();
 		}
-		if(searchNode.isLeaf()) 
-		{
+		if(searchNode.isLeaf()) {
 			//Not found in file; do nothing to the cache;
 			return 0;
-		} 
-		else 
-		{
+		} else {
 			BTreeNode newSearchNode = retrieveNode(searchNode.getChild(i));
 			return BTreeSearch(newSearchNode, sequence);
 		}
@@ -703,8 +698,7 @@ public class BTree {
 			}			
 		}
 	}
-	
-	/* ****** CACHE ************************************************************************ */
+/* ****** CACHE ************************************************************************ */
 	
 	/**
 	 * This class allows the user to create and manage a cache.
@@ -885,5 +879,4 @@ public class BTree {
 		}
 		
 	}
-
 }

@@ -21,7 +21,7 @@ public class GeneBankSearch {
 				throw new IllegalArgumentException("Cache status must be 0 (without cache) or 1 (with cache)");
 			}	
 			btreeFileName = args[1];
-			BTree btree = new BTree(btreeFileName, cacheStatus);
+			BTree btree = new BTree(btreeFileName);
 			query = new File(args[2]);
 			cacheSize = (cacheStatus==1)?Integer.parseInt(args[3]):0;
 			if(cacheStatus==1) 
@@ -43,7 +43,9 @@ public class GeneBankSearch {
 			while(scan.hasNext()) {
 				String sequence = scan.next();
 				int freq = btree.BTreeSearch(btree.getRoot(),sequence);
-				System.out.println(sequence+": "+freq);				
+				if(freq != 0) {
+					System.out.println(sequence.toLowerCase()+": "+freq);	
+				}
 			}
 			scan.close();
 			

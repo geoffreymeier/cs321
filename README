@@ -1,0 +1,39 @@
+CS 321
+Project 4 - Bioinformatics
+Nori Natsuhara
+Geoffrey Meier
+Brian Morck
+
+
+BTree Layout on Disk
+  For our BTree, we started by saving the metadata.
+            Data              #Bytes
+        1. sequence length : 1 byte
+        2. degree(t)       : 4 bytes (int)
+        3. root pointer    : 8 bytes (long)
+  Then we went on to add all the BTree Nodes.
+        4+. BTreeNodes     : 13 + 8(2t+1) + 12(2t-1) bytes
+        
+  For our BTreeNodes, we started by saving the boolean isLeaf and int numKeys variables.
+            Data              #Bytes
+        1. isLeaf          : 1 byte
+        2. numKeys         : 4 bytes        (int)
+  Then, we added the long pointers of the node.
+        3. self pointer    : 8 bytes        (long)
+        4. parent pointer  : 8 bytes        (long)
+        5. child pointers  : 8(2t) bytes    (array of longs with size of 2t)
+  Then, we added the TreeObjects.
+        6+. TreeObjects    : 12(2t-1) bytes (array of TreeObjects with size of 2t-1)
+        
+  For our TreeObjects, we saved the long key and the frequency.
+            Data          #Bytes
+        1. key        :  8 bytes (long)
+        2. frequency  :  4 bytes (int)
+       
+       
+BTree Implementation with Cache vs. BTree Implementation without Cache
+
+    Cache Size: 100
+        
+    Cache Size: 500
+        

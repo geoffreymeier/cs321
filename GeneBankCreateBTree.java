@@ -1,5 +1,6 @@
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Scanner;
 
 /**
@@ -32,37 +33,48 @@ public class GeneBankCreateBTree {
 				throw new IllegalArgumentException("Sequence length must be between 1 and 31 (inclusive)");
 			}
 			cacheSize = (cacheStatus==1)?Integer.parseInt(args[4]):0;
-			if (cacheStatus==1 && cacheSize < 1) {	//verify cache size if using cache
-				throw new IllegalArgumentException("When using cache, a positive cache size must be specified");
-			}
+
 			debugLevel = 0; //default
-			if (cacheStatus==1 && args.length==6) {
-				debugLevel = Integer.parseInt(args[6]);	
-			}				
+			if(cacheStatus == 1) 
+			{
+				if (cacheSize < 1) {	//verify cache size if using cache
+					throw new IllegalArgumentException("When using cache, a positive cache size must be specified");
+				}
+				if (args.length==6) {
+					debugLevel = Integer.parseInt(args[5]);	
+				}
+			}			
 			else if (cacheStatus==0 && args.length==5) {
-				debugLevel = Integer.parseInt(args[5]);
+				debugLevel = Integer.parseInt(args[4]);
 			}
 			
 			//initialize scanner and BTree
 			Scanner scan = new Scanner(filename);
-			scan.useDelimiter("//s*ORIGIN//s|//s*////s");	//use delimiters ORIGIN and //
-			BTree btree = new BTree(degree,seqLength);
+			scan.useDelimiter("\\s*ORIGIN\\s*|\\s*//\\s*");	//use delimiters ORIGIN and //
+			BTree btree = new BTree(degree,seqLength,args[2]);
 			
+			int index = 0;
 			//scan and insert patterns into BTree
 			while (scan.hasNext()) {
 				String data = scan.next();
-				data = data.replaceAll("[^atcgn]", "");	//process data (only keep a, t, c, g, and n)
-				for (int i = 0; i <= data.length()-seqLength; i++) {
-					btree.BTreeInsert(data.substring(i, i+seqLength));
+				if(index % 2 == 1) {
+					data = data.replaceAll("[^atcgn]", "");	//process data (only keep a, t, c, g, and n)
+					for (int i = 0; i <= data.length()-seqLength; i++) {
+						String sequence = data.substring(i,i+seqLength);
+						System.out.println(sequence);
+						btree.BTreeInsert(sequence);
+					}
 				}
+				index++;
 			}
 			
+			btree.finalize();			
 			scan.close();	//close the scanner
 			
 			//if debug is specified, make dump file
-			if (debugLevel!=0) {
-				createDumpFile(btree);
-			}
+			if (debugLevel!=0)
+				btree.createDumpFile();
+			
 			
 		}
 		catch (FileNotFoundException e) {
@@ -70,21 +82,15 @@ public class GeneBankCreateBTree {
 			e.printStackTrace();
 		}
 		catch(IllegalArgumentException e) {
-			e.getMessage();
+			e.printStackTrace();
 			printUsage();
 			System.exit(1);
+		} catch (IOException e) {
+			System.out.println("Error: Unable to read sequence from file.");
+			e.printStackTrace();
 		}
 	}
 	
-	
-	/**
-	 * Helper method that will create a dump file from a B-Tree.
-	 * @param btree The B-Tree from which to create a dump file.
-	 */
-	private static void createDumpFile(BTree btree) {
-		// TODO Auto-generated method stub
-		
-	}
 
 	/**
 	 * Helper method which will print the usage statement to the

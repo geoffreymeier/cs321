@@ -33,10 +33,10 @@ public class TreeObject {
 		}
 		
 		//change sequence to string of bits
-		sequence.replace("a", "00");
-		sequence.replace("t", "11");
-		sequence.replace("c", "01");
-		sequence.replace("g", "10");
+		sequence = sequence.replace("a", "00");
+		sequence = sequence.replace("t", "11");
+		sequence = sequence.replace("c", "01");
+		sequence = sequence.replace("g", "10");
 		
 		//parse the sequence into an integer
 		binSequence = Long.parseLong(sequence, 2);	
@@ -83,20 +83,25 @@ public class TreeObject {
 		String sequence = "";
 		String binSequence = Long.toBinaryString(this.binSequence);	//get the binary sequence
 		
+		while(binSequence.length()<2*k)
+		{
+			//insert 0's in front of the existing data to ensure it matches the expected length.
+			binSequence = "0" + binSequence;
+		}
 		//convert binary sequence to String of A, T, C, and G
 		for (int i=2*k; i>=2; i-=2) {
 			switch (binSequence.substring(i-2, i)) {
 			case "00":
-				sequence = "A"+sequence;
+				sequence = "a"+sequence;
 				break;
 			case "11":
-				sequence = "T"+sequence;
+				sequence = "t"+sequence;
 				break;
 			case "01":
-				sequence = "C"+sequence;
+				sequence = "c"+sequence;
 				break;
 			case "10":
-				sequence = "G"+sequence;
+				sequence = "g"+sequence;
 			}
 		}
 		
@@ -115,5 +120,13 @@ public class TreeObject {
 	 */
 	public int getFrequency() {
 		return frequency;
+	}
+	
+	/**
+	 * Set the frequency of the sequence. *CAUTION*: only use when retrieving node from file.
+	 * @param freq The new frequency
+	 */
+	public void setFrequency(int freq) {
+		frequency = freq;
 	}
 }
